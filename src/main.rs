@@ -10,6 +10,12 @@ struct File {
     created: std::time::SystemTime,
 }
 
+#[derive(Debug)]
+struct Directory {
+    path: std::path::PathBuf,
+    files: Option<Vec<File>>,
+    child_directories: Option<Vec<Directory>>,
+}
 
 fn main() {
     let current_dir = env::current_dir();
@@ -24,7 +30,6 @@ fn main() {
     }
     
 }
-
 
 fn walk_directory(directory:std::path::PathBuf) -> Vec<File> {
     let mut current_dir_files: Vec<File> = Vec::new();
