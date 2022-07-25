@@ -1,21 +1,65 @@
 use std::{env, fs};
+extern crate serde;
+extern crate serde_json;
+use serde::{Serialize, Deserialize};
+use std::io::prelude::*;
+
+trait Save {
+    fn save(&self);
+    fn load(&self);
+   }
 
 
-#[derive(Debug)]
+#[derive(Debug,Serialize, Deserialize)]
 struct File {
     path: std::path::PathBuf,
-    file_name: std::ffi::OsString,
+    file_name: String,
     last_accessed: std::time::SystemTime,
     last_modified:std::time::SystemTime,
     created: std::time::SystemTime,
 }
 
-#[derive(Debug)]
+#[derive(Debug,Serialize, Deserialize)]
 struct Directory {
     path: std::path::PathBuf,
     files: Option<Vec<File>>,
     child_directories: Option<Vec<Directory>>,
 }
+
+#[derive(Debug,Serialize, Deserialize)]
+struct FileManager {
+    excluded_files: Option<Vec<File>>,
+    excluded_directories: Option<Vec<Directory>>,
+    included_directories: Option<Vec<Directory>>,
+}
+
+impl Save for FileManager {
+    fn save (&self) {
+        let file_name = "FileMananger.json";
+        // let current_dir = String::new(env::current_dir().unwrap());
+        let mut file = fs::File::create(&file_name).unwrap();
+        let json = serde_json::to_string(&self).unwrap();
+        println!("{:?}", json);
+    }
+
+    fn load (&self) {
+    }
+}
+
+impl Save for File {
+    fn save (&self) {
+        let file_name = "File.json";
+        // let current_dir = String::new(env::current_dir().unwrap());
+        let mut file = fs::File::create(&file_name).unwrap();
+        let json = serde_json::to_string(&self).unwrap();
+        let okay = file.write_all(json.as_bytes()).unwrap();
+        println!("{:?}", json);
+    }
+
+    fn load (&self) {
+    }
+}
+
 
 fn main() {
     let current_dir = env::current_dir();
@@ -27,8 +71,9 @@ fn main() {
     let files = walk_directory(dire);
     for file in files {
         println!("{:?}", file.file_name);
+        file.save();
+        break;
     }
-    
 }
 
 fn walk_directory(directory:std::path::PathBuf) -> Vec<File> {
@@ -36,7 +81,7 @@ fn walk_directory(directory:std::path::PathBuf) -> Vec<File> {
     let directs = fs::read_dir(directory).unwrap();
     for  entry in directs {
         let entry = entry.unwrap();
-        let file_name = entry.file_name();
+        let file_name = entry.file_name().into_string().unwrap();
         let file_path = entry.path();
         
         let metadata = fs::metadata(&file_path).unwrap();
