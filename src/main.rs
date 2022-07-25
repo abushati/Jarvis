@@ -22,23 +22,28 @@ struct File {
 #[derive(Debug,Serialize, Deserialize)]
 struct Directory {
     path: std::path::PathBuf,
-    files: Option<Vec<File>>,
-    child_directories: Option<Vec<Directory>>,
+    files: Vec<File>,
+    child_directories: Vec<Directory>,
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize, Default)]
 struct FileManager {
-    excluded_files: Option<Vec<File>>,
-    excluded_directories: Option<Vec<Directory>>,
-    included_directories: Option<Vec<Directory>>,
+    excluded_files: Vec<File>,
+    excluded_directories: Vec<Directory>,
+    included_directories: Vec<Directory>,
 }
+
 
 impl Save for FileManager {
     fn save (&self) {
         let file_name = "FileMananger.json";
         // let current_dir = String::new(env::current_dir().unwrap());
         let mut file = fs::File::create(&file_name).unwrap();
-        let json = serde_json::to_string(&self).unwrap();
+        let json = serde_json::to_string_pretty(&self).unwrap();
+        // println!("{:?}", json);
+        let _ = file.write_all(json
+            .as_bytes())
+            .unwrap();
         println!("{:?}", json);
     }
 
@@ -52,7 +57,9 @@ impl Save for File {
         // let current_dir = String::new(env::current_dir().unwrap());
         let mut file = fs::File::create(&file_name).unwrap();
         let json = serde_json::to_string_pretty(&self).unwrap();
-        let okay = file.write_all(json.as_bytes()).unwrap();
+        let _ = file.write_all(json
+            .as_bytes())
+            .unwrap();
         println!("{:?}", json);
     }
 
@@ -67,13 +74,22 @@ fn main() {
         "Entries modified in the last 24 hours in {:?}:",
         current_dir
     );
+
+    let mut file_manager = FileManager::default();
+    println!("{:?}", file_manager);
+    let excluded_files = &file_manager.excluded_files;
     let dire =  current_dir.unwrap();
     let files = walk_directory(dire);
     for file in files {
-        println!("{:?}", file.file_name);
-        file.save();
-        break;
+        // println!("{:?}", file.file_name);
+        
+        file_manager.excluded_files.push(file);
+        
+        // break;
     }
+    // file_manager.excluded_files = <Option excluded_files>;
+    println!("{:?}", file_manager);
+    file_manager.save();
 }
 
 fn walk_directory(directory:std::path::PathBuf) -> Vec<File> {
