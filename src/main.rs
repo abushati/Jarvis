@@ -51,7 +51,7 @@ impl Save for File {
         let file_name = "File.json";
         // let current_dir = String::new(env::current_dir().unwrap());
         let mut file = fs::File::create(&file_name).unwrap();
-        let json = serde_json::to_string(&self).unwrap();
+        let json = serde_json::to_string_pretty(&self).unwrap();
         let okay = file.write_all(json.as_bytes()).unwrap();
         println!("{:?}", json);
     }
