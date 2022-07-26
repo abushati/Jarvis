@@ -4,8 +4,8 @@
       "path": "/Users/arvid/PycharmProjects/Jarvis/Cargo.toml",
       "file_name": "Cargo.toml",
       "last_accessed": {
-        "secs_since_epoch": 1658714460,
-        "nanos_since_epoch": 297962782
+        "secs_since_epoch": 1658790289,
+        "nanos_since_epoch": 326780192
       },
       "last_modified": {
         "secs_since_epoch": 1658714459,
@@ -36,8 +36,8 @@
       "path": "/Users/arvid/PycharmProjects/Jarvis/Cargo.lock",
       "file_name": "Cargo.lock",
       "last_accessed": {
-        "secs_since_epoch": 1658714460,
-        "nanos_since_epoch": 459179645
+        "secs_since_epoch": 1658787442,
+        "nanos_since_epoch": 705779965
       },
       "last_modified": {
         "secs_since_epoch": 1658714460,
@@ -68,12 +68,172 @@
       "path": "/Users/arvid/PycharmProjects/Jarvis/FileMananger.json",
       "file_name": "FileMananger.json",
       "last_accessed": {
-        "secs_since_epoch": 1658765114,
-        "nanos_since_epoch": 488645619
+        "secs_since_epoch": 1658765177,
+        "nanos_since_epoch": 304910076
       },
       "last_modified": {
-        "secs_since_epoch": 1658765114,
-        "nanos_since_epoch": 466635063
+        "secs_since_epoch": 1658765177,
+        "nanos_since_epoch": 280116237
+      },
+      "created": {
+        "secs_since_epoch": 1658765083,
+        "nanos_since_epoch": 382353539
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/Cargo.toml",
+      "file_name": "Cargo.toml",
+      "last_accessed": {
+        "secs_since_epoch": 1658790289,
+        "nanos_since_epoch": 326780192
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658714459,
+        "nanos_since_epoch": 890246330
+      },
+      "created": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 240686654
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/File.json",
+      "file_name": "File.json",
+      "last_accessed": {
+        "secs_since_epoch": 1658763458,
+        "nanos_since_epoch": 946505237
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658763458,
+        "nanos_since_epoch": 868155331
+      },
+      "created": {
+        "secs_since_epoch": 1658715071,
+        "nanos_since_epoch": 585948194
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/Cargo.lock",
+      "file_name": "Cargo.lock",
+      "last_accessed": {
+        "secs_since_epoch": 1658787442,
+        "nanos_since_epoch": 705779965
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658714460,
+        "nanos_since_epoch": 309053130
+      },
+      "created": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 238140738
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/.gitignore",
+      "file_name": ".gitignore",
+      "last_accessed": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 253729735
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 237245238
+      },
+      "created": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 235835405
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/FileMananger.json",
+      "file_name": "FileMananger.json",
+      "last_accessed": {
+        "secs_since_epoch": 1658804533,
+        "nanos_since_epoch": 784684732
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658804533,
+        "nanos_since_epoch": 192145418
+      },
+      "created": {
+        "secs_since_epoch": 1658765083,
+        "nanos_since_epoch": 382353539
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/Cargo.toml",
+      "file_name": "Cargo.toml",
+      "last_accessed": {
+        "secs_since_epoch": 1658790289,
+        "nanos_since_epoch": 326780192
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658714459,
+        "nanos_since_epoch": 890246330
+      },
+      "created": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 240686654
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/File.json",
+      "file_name": "File.json",
+      "last_accessed": {
+        "secs_since_epoch": 1658763458,
+        "nanos_since_epoch": 946505237
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658763458,
+        "nanos_since_epoch": 868155331
+      },
+      "created": {
+        "secs_since_epoch": 1658715071,
+        "nanos_since_epoch": 585948194
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/Cargo.lock",
+      "file_name": "Cargo.lock",
+      "last_accessed": {
+        "secs_since_epoch": 1658787442,
+        "nanos_since_epoch": 705779965
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658714460,
+        "nanos_since_epoch": 309053130
+      },
+      "created": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 238140738
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/.gitignore",
+      "file_name": ".gitignore",
+      "last_accessed": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 253729735
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 237245238
+      },
+      "created": {
+        "secs_since_epoch": 1658451063,
+        "nanos_since_epoch": 235835405
+      }
+    },
+    {
+      "path": "/Users/arvid/PycharmProjects/Jarvis/FileMananger.json",
+      "file_name": "FileMananger.json",
+      "last_accessed": {
+        "secs_since_epoch": 1658805426,
+        "nanos_since_epoch": 520549212
+      },
+      "last_modified": {
+        "secs_since_epoch": 1658805426,
+        "nanos_since_epoch": 369442380
       },
       "created": {
         "secs_since_epoch": 1658765083,

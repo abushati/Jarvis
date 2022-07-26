@@ -6,7 +6,7 @@ use std::io::prelude::*;
 
 trait Save {
     fn save(&self);
-    fn load(&self);
+    fn load(&self) -> Self;
    }
 
 
@@ -44,51 +44,57 @@ impl Save for FileManager {
         let _ = file.write_all(json
             .as_bytes())
             .unwrap();
-        println!("{:?}", json);
+        // println!("{:?}", json);
     }
 
-    fn load (&self) {
+    fn load (&self) -> FileManager {
+        let file_name = "FileMananger.json";
+        let file = fs::read_to_string(&file_name).unwrap();
+        let manager: FileManager = serde_json::from_str(&file).unwrap();
+        manager
     }
 }
 
-impl Save for File {
-    fn save (&self) {
-        let file_name = "File.json";
-        // let current_dir = String::new(env::current_dir().unwrap());
-        let mut file = fs::File::create(&file_name).unwrap();
-        let json = serde_json::to_string_pretty(&self).unwrap();
-        let _ = file.write_all(json
-            .as_bytes())
-            .unwrap();
-        println!("{:?}", json);
-    }
+// impl Save for File {
+//     fn save (&self) {
+//         let file_name = "File.json";
+//         // let current_dir = String::new(env::current_dir().unwrap());
+//         let mut file = fs::File::create(&file_name).unwrap();
+//         let json = serde_json::to_string_pretty(&self).unwrap();
+//         let _ = file.write_all(json
+//             .as_bytes())
+//             .unwrap();
+//         println!("{:?}", json);
+//     }
 
-    fn load (&self) {
-    }
-}
+//     fn load (&self) -> File {
+        
+//     }
+// }
 
 
 fn main() {
     let current_dir = env::current_dir();
+
     println!(
         "Entries modified in the last 24 hours in {:?}:",
         current_dir
     );
 
+    // let mut file_manager = FileManager::default();
     let mut file_manager = FileManager::default();
+    file_manager = file_manager.load();
     println!("{:?}", file_manager);
-    let excluded_files = &file_manager.excluded_files;
     let dire =  current_dir.unwrap();
     let files = walk_directory(dire);
     for file in files {
         // println!("{:?}", file.file_name);
-        
         file_manager.excluded_files.push(file);
         
         // break;
     }
     // file_manager.excluded_files = <Option excluded_files>;
-    println!("{:?}", file_manager);
+    // println!("{:?}", file_manager);
     file_manager.save();
 }
 
