@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::{env, fs, path::PathBuf, str::FromStr};
 extern crate serde;
 extern crate serde_json;
 use serde::{Serialize, Deserialize};
@@ -32,7 +32,27 @@ struct FileManager {
     excluded_directories: Vec<Directory>,
     included_directories: Vec<Directory>,
 }
+#[derive(Debug)]
+enum PathType {
+    EXCLUDE,
+    INCLUDE,
+}
 
+
+impl FileManager {
+    fn add(mut self, path: &str,typed: PathType){
+        match typed {
+            PathType::EXCLUDE => {
+                self.excluded_directories.push(walk_directory(PathBuf::from_str(path).unwrap()));
+            },
+            PathType::INCLUDE => {
+                println!("Direction is East");
+            }
+        }
+        self.save();
+        println!("{:?}", typed)
+    }
+}
 
 impl Save for FileManager {
     fn save (&self) {
@@ -74,33 +94,42 @@ impl Save for FileManager {
 
 
 fn main() {
-    let current_dir = env::current_dir();
+    let s = "/Users/arvid/PycharmProjects/Jarvis";
+    let typed = PathType::EXCLUDE;
+    let file_manager = FileManager::default().load();
+    file_manager.add(s, typed);
+    // file_manager.save();
 
-    println!(
-        "Entries modified in the last 24 hours in {:?}:",
-        current_dir
-    );
 
-    // let mut file_manager = FileManager::default();
-    let mut file_manager = FileManager::default();
-    file_manager = file_manager.load();
-    println!("{:?}", file_manager);
-    let dire =  current_dir.unwrap();
-    let files = walk_directory(dire);
-    for file in files {
-        // println!("{:?}", file.file_name);
-        file_manager.excluded_files.push(file);
-        
-        // break;
-    }
-    // file_manager.excluded_files = <Option excluded_files>;
+    // let current_dir = env::current_dir();
+
+    // println!(
+    //     "Entries modified in the last 24 hours in {:?}:",
+    //     current_dir
+    // );
+
+    // // let mut file_manager = FileManager::default();
+    // let mut file_manager = FileManager::default().load();
+    // // file_manager = file_manager.load();
     // println!("{:?}", file_manager);
-    file_manager.save();
+    // let dire =  current_dir.unwrap();
+    // let files = walk_directory(dire);
+    // for file in files {
+    //     // println!("{:?}", file.file_name);
+    //     file_manager.excluded_files.push(file);
+        
+    //     // break;
+    // }
+    // // file_manager.excluded_files = <Option excluded_files>;
+    // // println!("{:?}", file_manager);
+    
 }
 
-fn walk_directory(directory:std::path::PathBuf) -> Vec<File> {
+
+fn walk_directory(directory:std::path::PathBuf) -> Directory {
     let mut current_dir_files: Vec<File> = Vec::new();
-    let directs = fs::read_dir(directory).unwrap();
+    let mut current_dir_dir: Vec<Directory> = Vec::new();
+    let directs = fs::read_dir(&directory).unwrap();
     for  entry in directs {
         let entry = entry.unwrap();
         let file_name = entry.file_name().into_string().unwrap();
@@ -117,6 +146,9 @@ fn walk_directory(directory:std::path::PathBuf) -> Vec<File> {
                 };
             current_dir_files.push(file);
         }
+        else if metadata.is_dir() {
+            current_dir_dir.push(walk_directory(file_path))
+        }
     }
-    current_dir_files
+    return Directory {path: directory, files: current_dir_files, child_directories: current_dir_dir};
 }
