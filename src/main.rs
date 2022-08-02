@@ -3,6 +3,7 @@ extern crate serde;
 extern crate serde_json;
 use serde::{Serialize, Deserialize};
 use std::io::prelude::*;
+use chrono::{DateTime, Utc};
 
 trait Save {
     fn save(&self);
@@ -40,17 +41,18 @@ enum PathType {
 
 
 impl FileManager {
-    fn add(mut self, path: &str,typed: PathType){
+    fn add(mut self, path: &str,typed: PathType) -> Self{
         match typed {
             PathType::EXCLUDE => {
                 self.excluded_directories.push(walk_directory(PathBuf::from_str(path).unwrap()));
             },
             PathType::INCLUDE => {
-                println!("Direction is East");
+                self.included_directories.push(walk_directory(PathBuf::from_str(path).unwrap()));
             }
         }
         self.save();
-        println!("{:?}", typed)
+        println!("{:?}", typed);
+        self
     }
 }
 
@@ -75,6 +77,48 @@ impl Save for FileManager {
     }
 }
 
+
+struct FileCleaner {
+    file_manager: FileManager,
+    max_file_age: u64,
+
+}
+
+impl FileCleaner{
+    fn clean(&self){
+        let dirs_to_clean = &self.file_manager.included_directories;
+        for dir in dirs_to_clean{
+            self.clean_dir_files(dir);
+        }
+
+    }
+
+    fn clean_dir_files(&self, dir: &Directory) {
+        for file in &dir.files {
+            let now: DateTime<Utc> = file.last_accessed.into();
+            if self.should_delete_file(file){
+                
+                println!("{:?} file name to delete {:?}, {:?}",&file.file_name, now, &file.path)
+            }
+            else  {
+                println!("{:?} file name NOT TO delete {:?}, {:?}",&file.file_name, now, &file.path)
+            }
+        }
+        for dir in &dir.child_directories{
+            self.clean_dir_files(dir)
+        }
+    }
+
+    fn should_delete_file(&self, file: &File) -> bool {
+        if file.last_accessed.elapsed().unwrap().as_secs() > self.max_file_age{
+            return true
+        }
+        return false
+        // println!("{:?} file name to delete",file.last_accessed.elapsed().unwrap());
+        // return true
+    }
+    
+}
 // impl Save for File {
 //     fn save (&self) {
 //         let file_name = "File.json";
@@ -94,13 +138,16 @@ impl Save for FileManager {
 
 
 fn main() {
-    let s = "/Users/arvid/PycharmProjects/Jarvis";
-    let typed = PathType::EXCLUDE;
+    let s ="C:\\Users\\Arvid\\Documents\\GitHub\\Jarvis\\jarvis";
+    // let s = "/Users/arvid/PycharmProjects/Jarvis";
+    let typed = PathType::INCLUDE;
     let file_manager = FileManager::default().load();
-    file_manager.add(s, typed);
+    let file_manager = file_manager.add(s, typed);
+
+    let cleaner = FileCleaner {file_manager: file_manager,max_file_age: 40};
     // file_manager.save();
 
-
+    cleaner.clean();
     // let current_dir = env::current_dir();
 
     // println!(
