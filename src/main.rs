@@ -93,7 +93,33 @@ impl FileCleaner{
 
     }
 
+    fn check_excluded (&self, dir:&Directory, let_dir_to_check: &Vec<Directory> ) -> bool{
+        for excluded_dir in let_dir_to_check {
+            if dir.path == excluded_dir.path{
+                return true
+            }
+            if !excluded_dir.child_directories.is_empty(){            
+                if self.check_excluded(dir, &excluded_dir.child_directories){
+                    return true
+                }
+    
+            }
+        }
+        false
+    }
+
+
+    fn check_dir_in_excluded(&self, dir: &Directory) -> bool {
+        return self.check_excluded(&dir, &self.file_manager.excluded_directories)
+    }
+
     fn clean_dir_files(&self, dir: &Directory) {
+
+        if self.check_dir_in_excluded(dir){
+            println!("{:?} dir is excluded", dir.path);
+            return
+        }
+
         for file in &dir.files {
             let now: DateTime<Utc> = file.last_accessed.into();
             if self.should_delete_file(file){
