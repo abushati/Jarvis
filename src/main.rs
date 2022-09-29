@@ -4,6 +4,7 @@ extern crate serde_json;
 use serde::{Serialize, Deserialize};
 use std::io::prelude::*;
 use chrono::{DateTime, Utc};
+use std::env::args;
 
 trait Save {
     fn save(&self);
@@ -35,8 +36,8 @@ struct FileManager {
 }
 #[derive(Debug)]
 enum PathType {
-    EXCLUDE,
     INCLUDE,
+    EXCLUDE,
 }
 
 
@@ -77,7 +78,6 @@ impl Save for FileManager {
     }
 }
 
-
 struct FileCleaner {
     file_manager: FileManager,
     max_file_age: u64,
@@ -90,7 +90,6 @@ impl FileCleaner{
         for dir in dirs_to_clean{
             self.clean_dir_files(dir);
         }
-
     }
 
     fn check_excluded (&self, dir:&Directory, let_dir_to_check: &Vec<Directory> ) -> bool{
@@ -162,18 +161,35 @@ impl FileCleaner{
 //     }
 // }
 
+fn parse_args() -> (String, PathType) {
+    let path = args().nth(1).expect("no pattern given");
+    let action = args().nth(2).expect("no path given");
+    let mut action_type = PathType::EXCLUDE;
+    match action.as_str() {
+        "exclude" => {
+            action_type = PathType::EXCLUDE;
+        },
+        "include" => {
+            action_type = PathType::INCLUDE;
+        },
+        _ => println!("something else!")
+    }
+    return (path, action_type)
+}
 
 fn main() {
-    let s ="C:\\Users\\Arvid\\Documents\\GitHub\\Jarvis\\jarvis";
+    let (path, action_type) = parse_args();
+    // let s ="/Users/arvidbushati/Desktop/Projects/Jarvis";
     // let s = "/Users/arvid/PycharmProjects/Jarvis";
-    let typed = PathType::INCLUDE;
+    // let typed = PathType::INCLUDE;
+    
     let file_manager = FileManager::default().load();
-    let file_manager = file_manager.add(s, typed);
+    let file_manager = file_manager.add(&path, action_type);
 
-    let cleaner = FileCleaner {file_manager: file_manager,max_file_age: 40};
-    // file_manager.save();
+    // let cleaner = FileCleaner {file_manager: file_manager,max_file_age: 40};
+    // // file_manager.save();
 
-    cleaner.clean();
+    // cleaner.clean();
     // let current_dir = env::current_dir();
 
     // println!(
