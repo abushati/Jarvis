@@ -174,7 +174,7 @@ fn parse_args() -> (String, PathType) {
         },
         _ => println!("something else!")
     }
-    
+
     return (path, action_type)
 }
 
