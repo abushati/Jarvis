@@ -28,18 +28,17 @@ struct Directory {
     child_directories: Vec<Directory>,
 }
 
+#[derive(Debug)]
+enum PathType {
+    INCLUDE,
+    EXCLUDE,
+}
 #[derive(Debug,Serialize, Deserialize, Default)]
 struct FileManager {
     excluded_files: Vec<File>,
     excluded_directories: Vec<Directory>,
     included_directories: Vec<Directory>,
 }
-#[derive(Debug)]
-enum PathType {
-    INCLUDE,
-    EXCLUDE,
-}
-
 
 impl FileManager {
     fn add(mut self, path: &str,typed: PathType) -> Self{
@@ -55,6 +54,7 @@ impl FileManager {
         println!("{:?}", typed);
         self
     }
+
 }
 
 impl Save for FileManager {
@@ -144,48 +144,58 @@ impl FileCleaner{
     }
     
 }
-// impl Save for File {
-//     fn save (&self) {
-//         let file_name = "File.json";
-//         // let current_dir = String::new(env::current_dir().unwrap());
-//         let mut file = fs::File::create(&file_name).unwrap();
-//         let json = serde_json::to_string_pretty(&self).unwrap();
-//         let _ = file.write_all(json
-//             .as_bytes())
-//             .unwrap();
-//         println!("{:?}", json);
-//     }
+#[derive(Debug)]
+enum Actions {
+    ADD_DIR,
+    REMOVE_DIR,
+    CLEAN,
+}
+#[derive(Debug)]
+struct CliAction {
+    action: Actions,
+    args: Vec<String>
+}
 
-//     fn load (&self) -> File {
-        
-//     }
-// }
 
-fn parse_args() -> (String, PathType) {
-    let path = args().nth(1).expect("no pattern given");
-    let action = args().nth(2).expect("no path given");
-    let mut action_type = PathType::EXCLUDE;
+fn parse_args() -> Result<CliAction,String> {
+    let action = args().nth(1).expect("No valid action");
+    // let type_mapping = {"exclude": PathType::EXCLUDE, "include": PathType::INCLUDE};
+    
     match action.as_str() {
-        "exclude" => {
-            action_type = PathType::EXCLUDE;
+        "add_dir" => {
+            let path_type = args().nth(2).expect("no path given");
+            let path = args().nth(3).expect("no pattern given");
+            let s = CliAction{action:Actions::ADD_DIR,args:vec![path_type,path]};      
+            Ok(s)
         },
-        "include" => {
-            action_type = PathType::INCLUDE;
+        "remove_dir" => {
+            let path_type = args().nth(2).expect("no path given");
+            let path = args().nth(3).expect("no pattern given");
+            let s = CliAction{action:Actions::REMOVE_DIR,args:vec![path_type,path]};   
+            Ok(s)
         },
-        _ => println!("something else!")
+        _ => {
+            return Err("sd".to_string());
+        }
+        // "clean" => {
+        //     Err("bad");
+        // }
+
     }
 
-    return (path, action_type)
 }
 
 fn main() {
-    let (path, action_type) = parse_args();
+
+
+    let db = parse_args();
+    println!("{:?}", db.ok().unwrap());
     // let s ="/Users/arvidbushati/Desktop/Projects/Jarvis";
     // let s = "/Users/arvid/PycharmProjects/Jarvis";
     // let typed = PathType::INCLUDE;
     
-    let file_manager = FileManager::default().load();
-    let file_manager = file_manager.add(&path, action_type);
+    // let file_manager = FileManager::default().load();
+    // let file_manager = file_manager.add(&path, action_type);
 
     // let cleaner = FileCleaner {file_manager: file_manager,max_file_age: 40};
     // // file_manager.save();
