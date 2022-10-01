@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use std::io::prelude::*;
 use chrono::{DateTime, Utc};
 use std::env::args;
-
+use std::collections::HashMap;
 trait Save {
     fn save(&self);
     fn load(&self) -> Self;
@@ -156,6 +156,23 @@ struct CliAction {
     args: Vec<String>
 }
 
+impl CliAction {
+    fn run_action(self){
+        let action = self.action;
+        let args = self.args;
+        let mut ans = HashMap::<&str,fn()>::from([
+            ("add_dir",CliAction::add_dir),
+            ("add_dir",CliAction::remove_dir),
+        ]);
+    }
+    fn add_dir (self) {
+
+    }
+    fn remove_dir (self) {
+
+    }
+}
+
 
 fn parse_args() -> Result<CliAction,String> {
     let action = args().nth(1).expect("No valid action");
@@ -165,22 +182,25 @@ fn parse_args() -> Result<CliAction,String> {
         "add_dir" => {
             let path_type = args().nth(2).expect("no path given");
             let path = args().nth(3).expect("no pattern given");
+            if !["include", "exclude"].contains(&path_type.as_str()){
+                return Err("This is shit".to_string())
+            }
             let s = CliAction{action:Actions::ADD_DIR,args:vec![path_type,path]};      
             Ok(s)
         },
+
         "remove_dir" => {
             let path_type = args().nth(2).expect("no path given");
             let path = args().nth(3).expect("no pattern given");
+            if !["include", "exclude"].contains(&path_type.as_str()){
+                return Err("This is shit".to_string())
+            }
             let s = CliAction{action:Actions::REMOVE_DIR,args:vec![path_type,path]};   
             Ok(s)
         },
         _ => {
-            return Err("sd".to_string());
+            return Err("Not a valid action".to_string());
         }
-        // "clean" => {
-        //     Err("bad");
-        // }
-
     }
 
 }
