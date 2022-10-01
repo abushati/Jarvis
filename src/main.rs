@@ -1,3 +1,4 @@
+use std::hash::Hash;
 use std::{env, fs, path::PathBuf, str::FromStr};
 extern crate serde;
 extern crate serde_json;
@@ -41,7 +42,7 @@ struct FileManager {
 }
 
 impl FileManager {
-    fn add(mut self, path: &str,typed: PathType) -> Self{
+    fn add(mut self, path: &str,typed: &PathType) -> Self{
         match typed {
             PathType::EXCLUDE => {
                 self.excluded_directories.push(walk_directory(PathBuf::from_str(path).unwrap()));
@@ -144,7 +145,7 @@ impl FileCleaner{
     }
     
 }
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 enum Actions {
     ADD_DIR,
     REMOVE_DIR,
@@ -158,15 +159,22 @@ struct CliAction {
 
 impl CliAction {
     fn run_action(self){
-        let action = self.action;
-        let args = self.args;
-        let mut ans = HashMap::<&str,fn()>::from([
-            ("add_dir",CliAction::add_dir),
-            ("add_dir",CliAction::remove_dir),
-        ]);
+        let action = &self.action;
+        
+        if action == &Actions::ADD_DIR {
+            self.add_dir()
+        } else if action == &Actions::REMOVE_DIR {
+            self.remove_dir()
+        }
     }
     fn add_dir (self) {
-
+        println!("wee goood");
+        let file_manager = FileManager::default().load();
+        let new = HashMap::from({[("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]});
+        // println!("value={:?}",&*self.args[1]);
+        let d = new.get(&*self.args[0]);
+        // println!("value={:?}",d.unwrap())
+        let file_manager = file_manager.add(self.args[1].as_str(), d.unwrap());
     }
     fn remove_dir (self) {
 
@@ -206,10 +214,10 @@ fn parse_args() -> Result<CliAction,String> {
 }
 
 fn main() {
-
-
     let db = parse_args();
-    println!("{:?}", db.ok().unwrap());
+    // println!("{:?}", &db.ok().unwrap());
+    let action = db.unwrap();
+    action.run_action();
     // let s ="/Users/arvidbushati/Desktop/Projects/Jarvis";
     // let s = "/Users/arvid/PycharmProjects/Jarvis";
     // let typed = PathType::INCLUDE;
