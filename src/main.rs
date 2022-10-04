@@ -1,5 +1,4 @@
-use std::hash::Hash;
-use std::{env, fs, path::PathBuf, str::FromStr};
+use std::{env, fs, path::PathBuf,path::Path, str::FromStr};
 extern crate serde;
 extern crate serde_json;
 use serde::{Serialize, Deserialize};
@@ -7,11 +6,11 @@ use std::io::prelude::*;
 use chrono::{DateTime, Utc};
 use std::env::args;
 use std::collections::HashMap;
+use bincode;
 trait Save {
     fn save(&self);
     fn load(&self) -> Self;
    }
-
 
 #[derive(Debug,Serialize, Deserialize)]
 struct File {
@@ -82,6 +81,7 @@ impl Save for FileManager {
 struct FileCleaner {
     file_manager: FileManager,
     max_file_age: u64,
+    // to_delete_queue: PathBuf
 
 }
 
@@ -108,13 +108,18 @@ impl FileCleaner{
         false
     }
 
-
     fn check_dir_in_excluded(&self, dir: &Directory) -> bool {
         return self.check_excluded(&dir, &self.file_manager.excluded_directories)
     }
 
     fn clean_dir_files(&self, dir: &Directory) {
-
+        if !Path::new("to_delete_queue.txt").exists() {
+            println!("Openning file");
+            let mut file = fs::File::create("to_delete_queue.txt").unwrap();
+        }
+        let mut file = fs::File::open("to_delete_queue.txt").unwrap();
+        // let mut file = fs::File::create("to_delete_queue.txt").unwrap();
+        let mut to_delete_queue: Vec<String>  = vec![];
         if self.check_dir_in_excluded(dir){
             println!("{:?} dir is excluded", dir.path);
             return
@@ -122,19 +127,22 @@ impl FileCleaner{
         for file in &dir.files {
             let now: DateTime<Utc> = file.last_accessed.into();
             if self.should_delete_file(file){
-                
-                println!("{:?} file name to delete {:?}, {:?}",&file.file_name, now, &file.path)
+                println!("{:?} file name to delete {:?}, {:?}",&file.file_name, now, &file.path);
+                to_delete_queue.push(String::from(file.path.to_str().unwrap()));
             }
             else  {
-                println!("{:?} file name NOT TO delete {:?}, {:?}",&file.file_name, now, &file.path)
+                // println!("{:?} file name NOT TO delete {:?}, {:?}",&file.file_name, now, &file.path)
             }
         }
+        println!("To queue {:?}", to_delete_queue);
+        let encoded_v = bincode::serialize(&to_delete_queue).expect("Could not encode vector");
+        // println!("To queue {:?}", &encoded_v);
+        file.write_all(&encoded_v);
 
         for dir in &dir.child_directories{
             self.clean_dir_files(dir)
         }
     }
-
     fn should_delete_file(&self, file: &File) -> bool {
         if file.last_accessed.elapsed().unwrap().as_secs() > self.max_file_age{
             return true
