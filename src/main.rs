@@ -119,7 +119,6 @@ impl FileCleaner{
             println!("{:?} dir is excluded", dir.path);
             return
         }
-
         for file in &dir.files {
             let now: DateTime<Utc> = file.last_accessed.into();
             if self.should_delete_file(file){
@@ -130,6 +129,7 @@ impl FileCleaner{
                 println!("{:?} file name NOT TO delete {:?}, {:?}",&file.file_name, now, &file.path)
             }
         }
+
         for dir in &dir.child_directories{
             self.clean_dir_files(dir)
         }
@@ -165,6 +165,8 @@ impl CliAction {
             self.add_dir()
         } else if action == &Actions::REMOVE_DIR {
             self.remove_dir()
+        } else if action == &Actions::CLEAN {
+            self.clean()
         }
     }
     fn add_dir (self) {
@@ -176,9 +178,23 @@ impl CliAction {
         // println!("value={:?}",d.unwrap())
         let file_manager = file_manager.add(self.args[1].as_str(), d.unwrap());
     }
+    //Todo: This is broken
     fn remove_dir (self) {
-
+        println!("wee goood");
+        let file_manager = FileManager::default().load();
+        let new = HashMap::from({[("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]});
+        // println!("value={:?}",&*self.args[1]);
+        let d = new.get(&*self.args[0]);
+        // println!("value={:?}",d.unwrap())
+        let file_manager = file_manager.add(self.args[1].as_str(), d.unwrap());
     }
+
+    fn clean (self) {
+        let file_manager = FileManager::default().load();
+        let cleaner = FileCleaner {file_manager: file_manager,max_file_age: 40};
+        cleaner.clean();
+    }
+
 }
 
 
@@ -196,7 +212,6 @@ fn parse_args() -> Result<CliAction,String> {
             let s = CliAction{action:Actions::ADD_DIR,args:vec![path_type,path]};      
             Ok(s)
         },
-
         "remove_dir" => {
             let path_type = args().nth(2).expect("no path given");
             let path = args().nth(3).expect("no pattern given");
@@ -206,6 +221,10 @@ fn parse_args() -> Result<CliAction,String> {
             let s = CliAction{action:Actions::REMOVE_DIR,args:vec![path_type,path]};   
             Ok(s)
         },
+        "clean" => {
+            let s = CliAction{action:Actions::CLEAN,args:vec![]};
+            Ok(s)
+        }
         _ => {
             return Err("Not a valid action".to_string());
         }
