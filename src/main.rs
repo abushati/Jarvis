@@ -135,14 +135,17 @@ impl FileCleaner{
             }
         }
         println!("To queue {:?}", to_delete_queue);
-        let encoded_v = bincode::serialize(&to_delete_queue).expect("Could not encode vector");
-        // println!("To queue {:?}", &encoded_v);
-        file.write_all(&encoded_v);
+        println!("{:?}", to_delete_queue);
+        for path in to_delete_queue {
+            file.write_all(path.as_bytes()).expect("write failed");
+            file.write_all("\n".as_bytes());
+        }
 
         for dir in &dir.child_directories{
             self.clean_dir_files(dir)
         }
     }
+    
     fn should_delete_file(&self, file: &File) -> bool {
         if file.last_accessed.elapsed().unwrap().as_secs() > self.max_file_age{
             return true
