@@ -6,7 +6,7 @@ use std::io::prelude::*;
 use chrono::{DateTime, Utc};
 use std::env::args;
 use std::collections::HashMap;
-use bincode;
+use std::fs::OpenOptions;
 trait Save {
     fn save(&self);
     fn load(&self) -> Self;
@@ -113,12 +113,12 @@ impl FileCleaner{
     }
 
     fn clean_dir_files(&self, dir: &Directory) {
-        if !Path::new("to_delete_queue.txt").exists() {
-            println!("Openning file");
-            let mut file = fs::File::create("to_delete_queue.txt").unwrap();
-        }
-        let mut file = fs::File::open("to_delete_queue.txt").unwrap();
-        // let mut file = fs::File::create("to_delete_queue.txt").unwrap();
+        let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .append(true)
+        .open("to_delete_queue.txt")
+        .unwrap();
         let mut to_delete_queue: Vec<String>  = vec![];
         if self.check_dir_in_excluded(dir){
             println!("{:?} dir is excluded", dir.path);
