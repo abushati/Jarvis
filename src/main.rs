@@ -127,29 +127,40 @@ impl FileCleaner{
     }
 
     fn clean_dir_files(&self, dir: &Directory) {
+        if self.check_dir_in_excluded(dir){
+            println!("{:?} dir is excluded", dir.path);
+            return
+        }
+        
+        let mut to_delete_queue: Vec<String>  = vec![];
+        let mut file = OpenOptions::new()
+        .read(true)
+        .open("to_delete_queue.txt")
+        .unwrap();
+
+        let mut buf = String::new();
+        file.read_to_string(&mut buf).unwrap();
+        let list :Vec<&str> = buf.lines().collect();
+        println!("from buff{:?}", list);
+
         let mut file = OpenOptions::new()
         .write(true)
         .create(true)
         .append(true)
         .open("to_delete_queue.txt")
         .unwrap();
-        let mut to_delete_queue: Vec<String>  = vec![];
-        if self.check_dir_in_excluded(dir){
-            println!("{:?} dir is excluded", dir.path);
-            return
-        }
+
         for file in &dir.files {
             let now: DateTime<Utc> = file.last_accessed.into();
-            if self.should_delete_file(file){
-                println!("{:?} file name to delete {:?}, {:?}",&file.file_name, now, &file.path);
-                to_delete_queue.push(String::from(file.path.to_str().unwrap()));
+            let file_path = file.path.to_str().unwrap();
+            if !list.contains(&file_path) && self.should_delete_file(file){
+                to_delete_queue.push(String::from(file_path));
             }
             else  {
                 // println!("{:?} file name NOT TO delete {:?}, {:?}",&file.file_name, now, &file.path)
             }
         }
-        println!("To queue {:?}", to_delete_queue);
-        println!("{:?}", to_delete_queue);
+        // println!("To queue {:?}", to_delete_queue);
         for path in to_delete_queue {
             file.write_all(path.as_bytes()).expect("write failed");
             file.write_all("\n".as_bytes());
@@ -193,9 +204,7 @@ impl CliAction {
     fn remove_dir (self) {
         let file_manager = FileManager::default().load();
         let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
-        // println!("value={:?}",&*self.args[1]);
         let d = new.get(&*self.args[0]);
-        // println!("value={:?}",d.unwrap())
         let file_manager = file_manager.add(self.args[1].as_str(), d.unwrap());
     }
 
