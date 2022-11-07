@@ -12,6 +12,18 @@ trait Save {
     fn load(&self) -> Self;
    }
 
+#[derive(Debug)]
+enum PathType {
+    INCLUDE,
+    EXCLUDE,
+}
+
+#[derive(Debug,PartialEq)]
+enum Actions {
+    ADD_DIR,
+    REMOVE_DIR,
+    CLEAN,
+}
 #[derive(Debug,Serialize, Deserialize)]
 struct File {
     path: std::path::PathBuf,
@@ -28,16 +40,24 @@ struct Directory {
     child_directories: Vec<Directory>,
 }
 
-#[derive(Debug)]
-enum PathType {
-    INCLUDE,
-    EXCLUDE,
-}
 #[derive(Debug,Serialize, Deserialize, Default)]
 struct FileManager {
     excluded_files: Vec<File>,
     excluded_directories: Vec<Directory>,
     included_directories: Vec<Directory>,
+}
+
+struct FileCleaner {
+    file_manager: FileManager,
+    max_file_age: u64,
+    // to_delete_queue: PathBuf
+
+}
+
+#[derive(Debug)]
+struct CliAction {
+    action: Actions,
+    args: Vec<String>
 }
 
 impl FileManager {
@@ -78,12 +98,6 @@ impl Save for FileManager {
     }
 }
 
-struct FileCleaner {
-    file_manager: FileManager,
-    max_file_age: u64,
-    // to_delete_queue: PathBuf
-
-}
 
 impl FileCleaner{
     fn clean(&self){
@@ -156,17 +170,6 @@ impl FileCleaner{
     }
     
 }
-#[derive(Debug,PartialEq)]
-enum Actions {
-    ADD_DIR,
-    REMOVE_DIR,
-    CLEAN,
-}
-#[derive(Debug)]
-struct CliAction {
-    action: Actions,
-    args: Vec<String>
-}
 
 impl CliAction {
     fn run_action(self){
@@ -180,20 +183,16 @@ impl CliAction {
             self.clean()
         }
     }
-    fn add_dir (self) {
-        println!("wee goood");
+    fn add_dir(self) {
         let file_manager = FileManager::default().load();
-        let new = HashMap::from({[("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]});
-        // println!("value={:?}",&*self.args[1]);
+        let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
         let d = new.get(&*self.args[0]);
-        // println!("value={:?}",d.unwrap())
         let file_manager = file_manager.add(self.args[1].as_str(), d.unwrap());
     }
-    //Todo: This is broken
+
     fn remove_dir (self) {
-        println!("wee goood");
         let file_manager = FileManager::default().load();
-        let new = HashMap::from({[("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]});
+        let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
         // println!("value={:?}",&*self.args[1]);
         let d = new.get(&*self.args[0]);
         // println!("value={:?}",d.unwrap())
@@ -202,7 +201,7 @@ impl CliAction {
 
     fn clean (self) {
         let file_manager = FileManager::default().load();
-        let cleaner = FileCleaner {file_manager: file_manager,max_file_age: 40};
+        let cleaner = FileCleaner{file_manager: file_manager,max_file_age: 40};
         cleaner.clean();
     }
 
@@ -211,8 +210,6 @@ impl CliAction {
 
 fn parse_args() -> Result<CliAction,String> {
     let action = args().nth(1).expect("No valid action");
-    // let type_mapping = {"exclude": PathType::EXCLUDE, "include": PathType::INCLUDE};
-    
     match action.as_str() {
         "add_dir" => {
             let path_type = args().nth(2).expect("no path given");
