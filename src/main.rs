@@ -107,7 +107,7 @@ impl FileCleaner{
         }
     }
 
-    fn check_excluded (&self, dir:&Directory, let_dir_to_check: &Vec<Directory> ) -> bool{
+    fn check_excluded (&self, dir: &Directory, let_dir_to_check: &Vec<Directory> ) -> bool{
         for excluded_dir in let_dir_to_check {
             if dir.path == excluded_dir.path{
                 return true
@@ -156,11 +156,8 @@ impl FileCleaner{
             if !list.contains(&file_path) && self.should_delete_file(file){
                 to_delete_queue.push(String::from(file_path));
             }
-            else  {
-                // println!("{:?} file name NOT TO delete {:?}, {:?}",&file.file_name, now, &file.path)
-            }
         }
-        // println!("To queue {:?}", to_delete_queue);
+
         for path in to_delete_queue {
             file.write_all(path.as_bytes()).expect("write failed");
             file.write_all("\n".as_bytes());
@@ -194,18 +191,19 @@ impl CliAction {
             self.clean()
         }
     }
+
     fn add_dir(self) {
         let file_manager = FileManager::default().load();
         let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
         let d = new.get(&*self.args[0]);
-        let file_manager = file_manager.add(self.args[1].as_str(), d.unwrap());
+        let _ = file_manager.add(self.args[1].as_str(), d.unwrap());
     }
 
     fn remove_dir (self) {
         let file_manager = FileManager::default().load();
         let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
         let d = new.get(&*self.args[0]);
-        let file_manager = file_manager.add(self.args[1].as_str(), d.unwrap());
+        let _ = file_manager.add(self.args[1].as_str(), d.unwrap());
     }
 
     fn clean (self) {
@@ -217,76 +215,62 @@ impl CliAction {
 }
 
 
+
 fn parse_args() -> Result<CliAction,String> {
-    let action = args().nth(1).expect("No valid action");
-    match action.as_str() {
-        "add_dir" => {
-            let path_type = args().nth(2).expect("no path given");
-            let path = args().nth(3).expect("no pattern given");
-            if !["include", "exclude"].contains(&path_type.as_str()){
-                return Err("This is shit".to_string())
-            }
-            let s = CliAction{action:Actions::ADD_DIR,args:vec![path_type,path]};      
-            Ok(s)
-        },
-        "remove_dir" => {
-            let path_type = args().nth(2).expect("no path given");
-            let path = args().nth(3).expect("no pattern given");
-            if !["include", "exclude"].contains(&path_type.as_str()){
-                return Err("This is shit".to_string())
-            }
-            let s = CliAction{action:Actions::REMOVE_DIR,args:vec![path_type,path]};   
-            Ok(s)
-        },
-        "clean" => {
-            let s = CliAction{action:Actions::CLEAN,args:vec![]};
-            Ok(s)
-        }
-        _ => {
-            return Err("Not a valid action".to_string());
-        }
+    let valid_primary_cmds = ["manager","clean"];
+    let args:Vec<String> = args().collect();
+    if !(args.len() > 1){
+        return Err(String::from_str("invalid args len").unwrap());
     }
+    
+    println!("{:?}", args);
+    let primary_cmd = args[1].to_lowercase();
+    if !valid_primary_cmds.contains(&primary_cmd.as_str()){
+        return Err(format!("invalid primary arg {}, valid args: {:?}", primary_cmd, valid_primary_cmds));
+    }
+
+    return Ok(CliAction{action:Actions::ADD_DIR,args:vec!["dsdsfd".to_string(),"path".to_string()]});
+    // match action.as_str() {
+    //     "add_dir" => {
+    //         let path_type = args().nth(2).expect("no path given");
+    //         let path = args().nth(3).expect("no pattern given");
+    //         if !["include", "exclude"].contains(&path_type.as_str()){
+    //             return Err("This is shit".to_string())
+    //         }
+    //         let s = CliAction{action:Actions::ADD_DIR,args:vec![path_type,path]};      
+    //         Ok(s)
+    //     },
+    //     "remove_dir" => {
+    //         let path_type = args().nth(2).expect("no path given");
+    //         let path = args().nth(3).expect("no pattern given");
+    //         if !["include", "exclude"].contains(&path_type.as_str()){
+    //             return Err("This is shit".to_string())
+    //         }
+    //         let s = CliAction{action:Actions::REMOVE_DIR,args:vec![path_type,path]};   
+    //         Ok(s)
+    //     },
+    //     "clean" => {
+    //         let s = CliAction{action:Actions::CLEAN,args:vec![]};
+    //         Ok(s)
+    //     }
+    //     _ => {
+    //         return Err("Not a valid action".to_string());
+    //     }
+    // }
 
 }
 
 fn main() {
     let db = parse_args();
-    // println!("{:?}", &db.ok().unwrap());
-    let action = db.unwrap();
-    action.run_action();
-    // let s ="/Users/arvidbushati/Desktop/Projects/Jarvis";
-    // let s = "/Users/arvid/PycharmProjects/Jarvis";
-    // let typed = PathType::INCLUDE;
-    
-    // let file_manager = FileManager::default().load();
-    // let file_manager = file_manager.add(&path, action_type);
-
-    // let cleaner = FileCleaner {file_manager: file_manager,max_file_age: 40};
-    // // file_manager.save();
-
-    // cleaner.clean();
-    // let current_dir = env::current_dir();
-
-    // println!(
-    //     "Entries modified in the last 24 hours in {:?}:",
-    //     current_dir
-    // );
-
-    // // let mut file_manager = FileManager::default();
-    // let mut file_manager = FileManager::default().load();
-    // // file_manager = file_manager.load();
-    // println!("{:?}", file_manager);
-    // let dire =  current_dir.unwrap();
-    // let files = walk_directory(dire);
-    // for file in files {
-    //     // println!("{:?}", file.file_name);
-    //     file_manager.excluded_files.push(file);
+    match db {
+        Ok(action) => {
+            action.run_action();
+        },
+        Err(error) =>{
+            println!("{}", error)
+        }
         
-    //     // break;
-    // }
-    // // file_manager.excluded_files = <Option excluded_files>;
-    // // println!("{:?}", file_manager);
-    
+    }
 }
 
 
