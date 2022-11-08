@@ -218,16 +218,26 @@ impl CliAction {
 
 fn parse_args() -> Result<CliAction,String> {
     let valid_primary_cmds = ["manager","clean"];
+    let valid_sub_actions_cmds = ["add","remove","config"];
     let args:Vec<String> = args().collect();
     if !(args.len() > 1){
         return Err(String::from_str("invalid args len").unwrap());
     }
     
-    println!("{:?}", args);
     let primary_cmd = args[1].to_lowercase();
     if !valid_primary_cmds.contains(&primary_cmd.as_str()){
         return Err(format!("invalid primary arg {}, valid args: {:?}", primary_cmd, valid_primary_cmds));
+    }    
+    
+    if args.get(2).is_none(){
+        return Err(format!("No sub action provided, valid args: {:?}" , valid_sub_actions_cmds));
     }
+    let sub_actions_cmd = args.get(2).unwrap().to_lowercase();
+    if !valid_sub_actions_cmds.contains(&sub_actions_cmd.as_str()){
+        return Err(format!("Invalid subaction {}, valid args: {:?}" ,sub_actions_cmd, valid_sub_actions_cmds));
+    }
+
+    println!(" {:?}", sub_actions_cmd);
 
     return Ok(CliAction{action:Actions::ADD_DIR,args:vec!["dsdsfd".to_string(),"path".to_string()]});
     // match action.as_str() {
