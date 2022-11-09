@@ -20,9 +20,25 @@ enum PathType {
 
 #[derive(Debug,PartialEq)]
 enum Actions {
-    ADD_DIR,
-    REMOVE_DIR,
+    EXCLUDE_DIR,
+    INCLUDE_DIR,
+    EXCLUDE_FILE,
     CLEAN,
+}
+
+impl FromStr for Actions {
+
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<Actions, Self::Err> {
+        match input {
+            "EXCLUDE_DIR"  => Ok(Actions::EXCLUDE_DIR),
+            "INCLUDE_DIR"  => Ok(Actions::INCLUDE_DIR),
+            "EXCLUDE_FILE"  => Ok(Actions::EXCLUDE_FILE),
+            "CLEAN" => Ok(Actions::CLEAN),
+            _      => Err(()),
+        }
+    }
 }
 #[derive(Debug,Serialize, Deserialize)]
 struct File {
@@ -179,40 +195,40 @@ impl FileCleaner{
     
 }
 
-impl CliAction {
-    fn run_action(self){
-        let action = &self.action;
+// impl CliAction {
+//     fn run_action(self){
+//         let action = &self.action;
         
-        if action == &Actions::ADD_DIR {
-            self.add_dir()
-        } else if action == &Actions::REMOVE_DIR {
-            self.remove_dir()
-        } else if action == &Actions::CLEAN {
-            self.clean()
-        }
-    }
+//         if action == &Actions::ADD_DIR {
+//             self.add_dir()
+//         } else if action == &Actions::REMOVE_DIR {
+//             self.remove_dir()
+//         } else if action == &Actions::CLEAN {
+//             self.clean()
+//         }
+//     }
 
-    fn add_dir(self) {
-        let file_manager = FileManager::default().load();
-        let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
-        let d = new.get(&*self.args[0]);
-        let _ = file_manager.add(self.args[1].as_str(), d.unwrap());
-    }
+//     fn add_dir(self) {
+//         let file_manager = FileManager::default().load();
+//         let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
+//         let d = new.get(&*self.args[0]);
+//         let _ = file_manager.add(self.args[1].as_str(), d.unwrap());
+//     }
 
-    fn remove_dir (self) {
-        let file_manager = FileManager::default().load();
-        let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
-        let d = new.get(&*self.args[0]);
-        let _ = file_manager.add(self.args[1].as_str(), d.unwrap());
-    }
+//     fn remove_dir (self) {
+//         let file_manager = FileManager::default().load();
+//         let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
+//         let d = new.get(&*self.args[0]);
+//         let _ = file_manager.add(self.args[1].as_str(), d.unwrap());
+//     }
 
-    fn clean (self) {
-        let file_manager = FileManager::default().load();
-        let cleaner = FileCleaner{file_manager: file_manager,max_file_age: 40};
-        cleaner.clean();
-    }
+//     fn clean (self) {
+//         let file_manager = FileManager::default().load();
+//         let cleaner = FileCleaner{file_manager: file_manager,max_file_age: 40};
+//         cleaner.clean();
+//     }
 
-}
+// }
 
 
 
@@ -251,13 +267,24 @@ fn parse_args() -> Result<CliAction,String> {
         if pre_args.is_none(){
             return Err(format!("You are missing args, len 2"));
         }
-        let action = pre_args.unwrap()[0];
-        let type = pre_args.unwrap()[1];
+        //typed === excluded_files, excluded_directories, included_directories
+        let typed = pre_args.unwrap()[0].to_uppercase();
+        let path = pre_args.unwrap()[1].to_uppercase();
+        match Actions::from_str(&typed) {
+            Ok(action) => {
+                return Ok(CliAction{action:action,args:vec![path]});
+            }
+            Err(_) =>{
+                return Err(format!("invalid action type {:?}",typed));
+            }
+            
+        }
+        
 
     }
 
 
-    return Ok(CliAction{action:Actions::ADD_DIR,args:vec!["dsdsfd".to_string(),"path".to_string()]});
+    return Ok(CliAction{action:Actions::EXCLUDE_FILE,args:vec!["dsdsfd".to_string(),"path".to_string()]});
     // match action.as_str() {
     //     "add_dir" => {
     //         let path_type = args().nth(2).expect("no path given");
@@ -292,7 +319,7 @@ fn main() {
     let db = parse_args();
     match db {
         Ok(action) => {
-            action.run_action();
+            // action.run_action();
         },
         Err(error) =>{
             println!("{}", error)
