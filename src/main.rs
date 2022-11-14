@@ -225,7 +225,7 @@ struct CliAction {
 
 
 trait  CLICommand {
-    fn run(){}
+    fn run(&self){}
 }
 enum primary_cmds{MANAGER,
     //  CONFIG,
@@ -252,7 +252,7 @@ impl FromStr for primary_cmds {
 //     action: config_action
 //     key: str
 //     value: str
-
+#[derive(Debug)]
 enum file_manager_section {
     EXCLUDE_DIR,
     INCLUDE_DIR,
@@ -272,6 +272,7 @@ impl FromStr for file_manager_section {
         }
     }
 }
+#[derive(Debug)]
 enum manager_actions {
     ADD,
     REMOVE
@@ -288,16 +289,17 @@ impl FromStr for manager_actions {
         }
     }
 }  
+
 struct manager_cmd{
     manager_action: manager_actions,
     sub_action: file_manager_section,
     value: String
 }
 impl CLICommand for manager_cmd {
-    fn run(self) {
-        println!("{:?}",self.manager_action);
-        println!("{:?}",self.sub_action);
-        println!("{:?}", self.value);
+    fn run(&self) {
+        println!("{:?}",&self.manager_action);
+        println!("{:?}",&self.sub_action);
+        println!("{:?}", &self.value);
     }
 }
 
