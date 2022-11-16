@@ -50,18 +50,29 @@ impl FileManager {
         // let current_dir = String::new(env::current_dir().unwrap());
         let mut file = fs::File::create(&file_name).unwrap();
         let json = serde_json::to_string_pretty(&self).unwrap();
-        // println!("{:?}", json);
         let _ = file.write_all(json
             .as_bytes())
             .unwrap();
-        // println!("{:?}", json);
     }
 
     fn load (&self) -> FileManager {
         let file_name = "FileMananger.json";
-        let file = fs::read_to_string(&file_name).unwrap();
-        let manager: FileManager = serde_json::from_str(&file).unwrap();
-        manager
+        let file_string; 
+        let mut file = fs::read_to_string(&file_name);
+        if file.is_err() {
+            let default_template = r###"{
+                "excluded_files": [],
+                "excluded_directories": [],
+                "included_directories": []
+            }"###.to_string();
+            file_string = default_template;
+        }
+        else {
+            file_string = file.unwrap();
+            
+        }
+        let manager: FileManager = serde_json::from_str(&file_string).unwrap();
+        return manager
     }
 
     fn add(mut self, section: &file_manager_section, path: &str ) -> Self{
