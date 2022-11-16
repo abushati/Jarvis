@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::{env, fs, path::PathBuf,path::Path, str::FromStr};
 extern crate serde;
 extern crate serde_json;
@@ -8,54 +9,23 @@ use std::env::args;
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use core::fmt::Debug;
-trait Save {
-    fn save(&self);
-    fn load(&self) -> Self;
-   }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct File {
+    path: std::path::PathBuf,
+    file_name: String,
+    last_accessed: std::time::SystemTime,
+    last_modified:std::time::SystemTime,
+    created: std::time::SystemTime,
+}
 
-// #[derive(Debug,PartialEq)]
-// enum Actions {
+#[derive(Debug,Serialize, Deserialize)]
+struct Directory {
+    path: std::path::PathBuf,
+    files: Vec<File>,
+    child_directories: Vec<Directory>,
+}
 
-//     CLEAN,
-// }
-
-// impl FromStr for Actions {
-
-//     type Err = ();
-
-//     fn from_str(input: &str) -> Result<Actions, Self::Err> {
-//         match input {
-//             "EXCLUDE_DIR"  => Ok(Actions::EXCLUDE_DIR),
-//             "INCLUDE_DIR"  => Ok(Actions::INCLUDE_DIR),
-//             "EXCLUDE_FILE"  => Ok(Actions::EXCLUDE_FILE),
-//             "CLEAN" => Ok(Actions::CLEAN),
-//             _      => Err(()),
-//         }
-//     }
-// }
-// #[derive(Serialize, Deserialize)]
-// struct File {
-//     path: std::path::PathBuf,
-//     file_name: String,
-//     last_accessed: std::time::SystemTime,
-//     last_modified:std::time::SystemTime,
-//     created: std::time::SystemTime,
-// }
-
-// #[derive(Debug,Serialize, Deserialize)]
-// struct Directory {
-//     path: std::path::PathBuf,
-//     files: Vec<File>,
-//     child_directories: Vec<Directory>,
-// }
-
-// #[derive(Debug,Serialize, Deserialize, Default)]
-// struct FileManager {
-//     excluded_files: Vec<File>,
-//     excluded_directories: Vec<Directory>,
-//     included_directories: Vec<Directory>,
-// }
 
 // struct FileCleaner {
 //     file_manager: FileManager,
@@ -67,45 +37,92 @@ trait Save {
 struct CliAction {
     cmd: Box<dyn CLICommand>,
 }
+#[derive(Debug,Serialize, Deserialize, Default)]
+struct FileManager {
+    excluded_files: Vec<File>,
+    excluded_directories: Vec<Directory>,
+    included_directories: Vec<Directory>,
+}
 
+impl FileManager {
+    fn save (&self) {
+        let file_name = "FileMananger.json";
+        // let current_dir = String::new(env::current_dir().unwrap());
+        let mut file = fs::File::create(&file_name).unwrap();
+        let json = serde_json::to_string_pretty(&self).unwrap();
+        // println!("{:?}", json);
+        let _ = file.write_all(json
+            .as_bytes())
+            .unwrap();
+        // println!("{:?}", json);
+    }
 
-// impl FileManager {
-//     fn add(mut self, path: &str,typed: &PathType) -> Self{
-//         match typed {
-//             PathType::EXCLUDE => {
-//                 self.excluded_directories.push(walk_directory(PathBuf::from_str(path).unwrap()));
-//             },
-//             PathType::INCLUDE => {
-//                 self.included_directories.push(walk_directory(PathBuf::from_str(path).unwrap()));
-//             }
-//         }
-//         self.save();
-//         println!("{:?}", typed);
-//         self
-//     }
+    fn load (&self) -> FileManager {
+        let file_name = "FileMananger.json";
+        let file = fs::read_to_string(&file_name).unwrap();
+        let manager: FileManager = serde_json::from_str(&file).unwrap();
+        manager
+    }
 
-// }
+    fn add(mut self, section: &file_manager_section, path: &str ) -> Self{
+        match section {
+            file_manager_section::EXCLUDE_DIR => {
+                self.excluded_directories.push(walk_directory(PathBuf::from_str(path).unwrap()));
+            },
+            file_manager_section::INCLUDE_DIR => {
+                self.included_directories.push(walk_directory(PathBuf::from_str(path).unwrap()));
+            },
+            file_manager_section::EXCLUDE_FILE => {
+                let pathBuff = PathBuf::from_str(path).unwrap();
+                let file_name = pathBuff.file_name().unwrap().to_str().unwrap().to_string();
+                let file_path = pathBuff;
 
-// impl Save for FileManager {
-//     fn save (&self) {
-//         let file_name = "FileMananger.json";
-//         // let current_dir = String::new(env::current_dir().unwrap());
-//         let mut file = fs::File::create(&file_name).unwrap();
-//         let json = serde_json::to_string_pretty(&self).unwrap();
-//         // println!("{:?}", json);
-//         let _ = file.write_all(json
-//             .as_bytes())
-//             .unwrap();
-//         // println!("{:?}", json);
-//     }
+                let metadata = fs::metadata(&path).unwrap();
+                
+                if metadata.is_file() {
+                    let file = File {
+                        path: file_path,
+                        file_name: file_name,
+                        last_accessed: metadata.accessed().unwrap(),
+                        last_modified: metadata.modified().unwrap(),
+                        created: metadata.created().unwrap(),
+                        };
 
-//     fn load (&self) -> FileManager {
-//         let file_name = "FileMananger.json";
-//         let file = fs::read_to_string(&file_name).unwrap();
-//         let manager: FileManager = serde_json::from_str(&file).unwrap();
-//         manager
-//     }
-// }
+                    self.excluded_files.push(file);
+                }
+            }
+        }
+        self.save();
+        // println!("{:?}", typed);
+        self
+    }
+
+    fn remove(mut self, section: &file_manager_section, path: &str ) -> Self
+    {
+        return self
+    }
+    // fn remove(mut self, section: file_manager_section, path: &str ) -> Self{
+    //     match section {
+    //         file_manager_section::EXCLUDE_DIR => {
+    //             if let Some(pos) = vec.iter().position(|x| *x == needle) {
+    //                 vec.remove(pos);
+    //             }
+    //             self.excluded_directories.remove(walk_directory(PathBuf::from_str(path).unwrap()));
+    //         },
+    //         file_manager_section::INCLUDE_DIR => {
+    //             self.included_directories.remove(walk_directory(PathBuf::from_str(path).unwrap()));
+    //         },
+    //         file_manager_section::EXCLUDE_FILE => {
+    //             self.excluded_files.(PathBuf::from_str(path).unwrap());
+    //         }
+            
+    //     }
+    //     self.save();
+    //     println!("{:?}", typed);
+    //     self
+    // }
+
+    }
 
 
 // impl FileCleaner{
@@ -115,7 +132,6 @@ struct CliAction {
 //             self.clean_dir_files(dir);
 //         }
 //     }
-
 //     fn check_excluded (&self, dir: &Directory, let_dir_to_check: &Vec<Directory> ) -> bool{
 //         for excluded_dir in let_dir_to_check {
 //             if dir.path == excluded_dir.path{
@@ -130,11 +146,9 @@ struct CliAction {
 //         }
 //         false
 //     }
-
 //     fn check_dir_in_excluded(&self, dir: &Directory) -> bool {
 //         return self.check_excluded(&dir, &self.file_manager.excluded_directories)
 //     }
-
 //     fn clean_dir_files(&self, dir: &Directory) {
 //         if self.check_dir_in_excluded(dir){
 //             println!("{:?} dir is excluded", dir.path);
@@ -188,46 +202,12 @@ struct CliAction {
     
 // }
 
-// impl CliAction {
-//     fn run_action(self){
-//         let action = &self.action;
-        
-//         if action == &Actions::ADD_DIR {
-//             self.add_dir()
-//         } else if action == &Actions::REMOVE_DIR {
-//             self.remove_dir()
-//         } else if action == &Actions::CLEAN {
-//             self.clean()
-//         }
-//     }
-
-//     fn add_dir(self) {
-//         let file_manager = FileManager::default().load();
-//         let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
-//         let d = new.get(&*self.args[0]);
-//         let _ = file_manager.add(self.args[1].as_str(), d.unwrap());
-//     }
-
-//     fn remove_dir (self) {
-//         let file_manager = FileManager::default().load();
-//         let new = HashMap::from([("include",PathType::INCLUDE),("exclude",PathType::EXCLUDE)]);
-//         let d = new.get(&*self.args[0]);
-//         let _ = file_manager.add(self.args[1].as_str(), d.unwrap());
-//     }
-
-//     fn clean (self) {
-//         let file_manager = FileManager::default().load();
-//         let cleaner = FileCleaner{file_manager: file_manager,max_file_age: 40};
-//         cleaner.clean();
-//     }
-
-// }
-
 
 trait  CLICommand {
     fn run(&self){}
 }
-enum primary_cmds{MANAGER,
+enum primary_cmds {
+    MANAGER,
     //  CONFIG,
     //   CLEAN
     }
@@ -245,19 +225,15 @@ impl FromStr for primary_cmds {
         }
     }
 }
-// enum config_action set, remove
 
 
-// struct config
-//     action: config_action
-//     key: str
-//     value: str
 #[derive(Debug)]
 enum file_manager_section {
     EXCLUDE_DIR,
     INCLUDE_DIR,
     EXCLUDE_FILE
 }
+
 impl FromStr for file_manager_section {
 
     type Err = ();
@@ -277,9 +253,9 @@ enum manager_actions {
     ADD,
     REMOVE
     }
+
 impl FromStr for manager_actions {
     type Err = ();
-
     fn from_str(input: &str) -> Result<manager_actions, Self::Err> {
         let  input = input.to_uppercase();
         match input.as_str() {
@@ -300,6 +276,15 @@ impl CLICommand for manager_cmd {
         println!("{:?}",&self.manager_action);
         println!("{:?}",&self.sub_action);
         println!("{:?}", &self.value);
+        let file_manager = FileManager::default().load();
+        match self.manager_action {
+            manager_actions::ADD => {
+                file_manager.add(&self.sub_action,self.value.as_str());
+            },
+            manager_actions::REMOVE => {
+                file_manager.remove(&self.sub_action,self.value.as_str());
+            }
+        }
     }
 }
 
@@ -310,9 +295,6 @@ fn parse_args() -> Result<CliAction,String> {
     //"config":["action","key","value"]
     //         
     // "clean":{}}
-
-
-    let valid_sub_actions_cmds = ["add","remove","config"];
     let args:Vec<String> = args().collect();
     if !(args.len() > 1){
         return Err(String::from_str("invalid args len").unwrap());
@@ -385,29 +367,29 @@ fn main() {
 }
 
 
-// fn walk_directory(directory:std::path::PathBuf) -> Directory {
-//     let mut current_dir_files: Vec<File> = Vec::new();
-//     let mut current_dir_dir: Vec<Directory> = Vec::new();
-//     let directs = fs::read_dir(&directory).unwrap();
-//     for  entry in directs {
-//         let entry = entry.unwrap();
-//         let file_name = entry.file_name().into_string().unwrap();
-//         let file_path = entry.path();
+fn walk_directory(directory:std::path::PathBuf) -> Directory {
+    let mut current_dir_files: Vec<File> = Vec::new();
+    let mut current_dir_dir: Vec<Directory> = Vec::new();
+    let directs = fs::read_dir(&directory).unwrap();
+    for  entry in directs {
+        let entry = entry.unwrap();
+        let file_name = entry.file_name().into_string().unwrap();
+        let file_path = entry.path();
         
-//         let metadata = fs::metadata(&file_path).unwrap();
-//         if metadata.is_file() {
-//             let file = File {
-//                 path: file_path,
-//                 file_name: file_name,
-//                 last_accessed: metadata.accessed().unwrap(),
-//                 last_modified: metadata.modified().unwrap(),
-//                 created: metadata.created().unwrap(),
-//                 };
-//             current_dir_files.push(file);
-//         }
-//         else if metadata.is_dir() {
-//             current_dir_dir.push(walk_directory(file_path))
-//         }
-//     }
-//     return Directory {path: directory, files: current_dir_files, child_directories: current_dir_dir};
-// }
+        let metadata = fs::metadata(&file_path).unwrap();
+        if metadata.is_file() {
+            let file = File {
+                path: file_path,
+                file_name: file_name,
+                last_accessed: metadata.accessed().unwrap(),
+                last_modified: metadata.modified().unwrap(),
+                created: metadata.created().unwrap(),
+                };
+            current_dir_files.push(file);
+        }
+        else if metadata.is_dir() {
+            current_dir_dir.push(walk_directory(file_path))
+        }
+    }
+    return Directory {path: directory, files: current_dir_files, child_directories: current_dir_dir};
+}
