@@ -44,6 +44,12 @@ struct FileManager {
     included_directories: Vec<Directory>,
 }
 
+const default_file_manager_template:&str = r###"{
+    "excluded_files": [],
+    "excluded_directories": [],
+    "included_directories": []
+}"###;
+
 impl FileManager {
     fn save (&self) {
         let file_name = "FileMananger.json";
@@ -65,14 +71,24 @@ impl FileManager {
                 "excluded_directories": [],
                 "included_directories": []
             }"###.to_string();
-            file_string = default_template;
+            file_string = default_template.to_string();
         }
         else {
             file_string = file.unwrap();
             
         }
-        let manager: FileManager = serde_json::from_str(&file_string).unwrap();
-        return manager
+        let manager: Result<FileManager, serde_json::Error> = serde_json::from_str(&file_string);
+        if manager.is_err(){
+            return self.reset();
+        }
+        return manager.unwrap()
+    }
+
+    fn reset(&self) -> FileManager{
+        fs::remove_file("FileMananger.json").unwrap();
+        let manager = self.load();
+        manager.save();
+        return manager;
     }
 
     fn add(mut self, section: &file_manager_section, path: &str ) -> Self{
@@ -242,7 +258,7 @@ impl FromStr for primary_cmds {
 enum file_manager_section {
     EXCLUDE_DIR,
     INCLUDE_DIR,
-    EXCLUDE_FILE
+    EXCLUDE_FILE,
 }
 
 impl FromStr for file_manager_section {
@@ -259,10 +275,11 @@ impl FromStr for file_manager_section {
         }
     }
 }
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 enum manager_actions {
     ADD,
-    REMOVE
+    REMOVE,
+    RESET
     }
 
 impl FromStr for manager_actions {
@@ -272,6 +289,7 @@ impl FromStr for manager_actions {
         match input.as_str() {
             "ADD"  => Ok(manager_actions::ADD),
             "REMOVE"  => Ok(manager_actions::REMOVE),
+            "RESET"  => Ok(manager_actions::RESET),
             _      => Err(()),
         }
     }
@@ -279,21 +297,22 @@ impl FromStr for manager_actions {
 
 struct manager_cmd{
     manager_action: manager_actions,
-    sub_action: file_manager_section,
-    value: String
+    sub_action: Option<file_manager_section>,
+    value: Option<String>
 }
 impl CLICommand for manager_cmd {
     fn run(&self) {
         println!("{:?}",&self.manager_action);
-        println!("{:?}",&self.sub_action);
-        println!("{:?}", &self.value);
         let file_manager = FileManager::default().load();
         match self.manager_action {
             manager_actions::ADD => {
-                file_manager.add(&self.sub_action,self.value.as_str());
+                file_manager.add(&self.sub_action.as_ref().ok_or("no").unwrap(),self.value.as_ref().ok_or("no").unwrap().as_str());
             },
             manager_actions::REMOVE => {
-                file_manager.remove(&self.sub_action,self.value.as_str());
+                file_manager.remove(&self.sub_action.as_ref().ok_or("no").unwrap(),self.value.as_ref().ok_or("no").unwrap().as_str());
+            },
+            manager_actions::RESET => {
+                file_manager.reset();
             }
         }
     }
@@ -301,7 +320,8 @@ impl CLICommand for manager_cmd {
 
 fn parse_args() -> Result<CliAction,String> {
     // {"manager":{"add":["action","type"],
-    //             "remove":["action","type"]
+    //             "remove":["action","type"],
+    //             "reset": []
     //              },
     //"config":["action","key","value"]
     //         
@@ -330,6 +350,11 @@ fn parse_args() -> Result<CliAction,String> {
                             return Err(format!("Invalid manager action" ));
                         }
                     }
+                    
+                    if manager_action == manager_actions::RESET {
+                        let cmd = manager_cmd{manager_action:manager_action, sub_action: None, value: None};
+                        return Ok(CliAction{cmd:Box::new(cmd)});
+                    }
 
                     let section = args.get(3).unwrap();
                     match file_manager_section::from_str(&section.as_str()) {
@@ -349,7 +374,7 @@ fn parse_args() -> Result<CliAction,String> {
                         return Err(format!("path not provided"));
                     }
 
-                    let cmd = manager_cmd{manager_action:manager_action,sub_action:manager_section,value:value.to_string()};
+                    let cmd = manager_cmd{manager_action:manager_action,sub_action:Some(manager_section),value:Some(value.to_string())};
                     Ok(CliAction{cmd:Box::new(cmd)})
                 },
                 // primary_cmds::CONFIG => {return Err()},
