@@ -90,7 +90,7 @@ impl FileManager {
         manager.save();
         return manager;
     }
-
+    //Need a way to detect duplicates and stop
     fn add(mut self, section: &file_manager_section, path: &str ) -> Self{
         match section {
             file_manager_section::EXCLUDE_DIR => {
@@ -116,6 +116,8 @@ impl FileManager {
                         };
 
                     self.excluded_files.push(file);
+                } else {
+                    println!("input is not a file")
                 }
             }
         }
@@ -124,30 +126,39 @@ impl FileManager {
         self
     }
 
-    fn remove(mut self, section: &file_manager_section, path: &str ) -> Self
-    {
+    // fn remove(mut self, section: &file_manager_section, path: &str ) -> Self
+    // {
+    //     return self
+    // }
+    fn remove(mut self, section: &file_manager_section, path: &str ) -> Self{
+        match section {
+            file_manager_section::EXCLUDE_DIR => {
+                if let Some(pos) = self.excluded_directories.iter().position(|x| * &x.path.to_str().ok_or("not string").unwrap() == path) {
+                    self.excluded_directories.remove(pos);
+                } else {
+                    println!("Couldn't remove from excluded directories")
+                }   
+
+            },
+            file_manager_section::INCLUDE_DIR => {
+                if let Some(pos) = self.included_directories.iter().position(|x| * &x.path.to_str().ok_or("not string").unwrap() == path) {
+                    self.included_directories.remove(pos);
+                } else {
+                    println!("Couldn't remove from included directories")
+                }   
+            },
+            file_manager_section::EXCLUDE_FILE => {
+                if let Some(pos) = self.excluded_files.iter().position(|x| * &x.path.to_str().ok_or("not string").unwrap() == path) {
+                    self.excluded_files.remove(pos);
+                } else {
+                    println!("Couldn't remove from excluded file")
+                }   
+            }
+            
+        }
+        self.save();
         return self
     }
-    // fn remove(mut self, section: file_manager_section, path: &str ) -> Self{
-    //     match section {
-    //         file_manager_section::EXCLUDE_DIR => {
-    //             if let Some(pos) = vec.iter().position(|x| *x == needle) {
-    //                 vec.remove(pos);
-    //             }
-    //             self.excluded_directories.remove(walk_directory(PathBuf::from_str(path).unwrap()));
-    //         },
-    //         file_manager_section::INCLUDE_DIR => {
-    //             self.included_directories.remove(walk_directory(PathBuf::from_str(path).unwrap()));
-    //         },
-    //         file_manager_section::EXCLUDE_FILE => {
-    //             self.excluded_files.(PathBuf::from_str(path).unwrap());
-    //         }
-            
-    //     }
-    //     self.save();
-    //     println!("{:?}", typed);
-    //     self
-    // }
 
     }
 
