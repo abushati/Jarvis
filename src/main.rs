@@ -1,4 +1,4 @@
-use std::{env, fs, path::PathBuf,path::Path, str::FromStr};
+use std::{fs,path::PathBuf,str::FromStr};
 extern crate serde;
 extern crate serde_json;
 use serde::{Serialize, Deserialize};
@@ -17,12 +17,6 @@ struct FileManager {
     excluded_directories: Vec<Directory>,
     included_directories: Vec<Directory>,
 }
-
-const default_file_manager_template:&str = r###"{
-    "excluded_files": [],
-    "excluded_directories": [],
-    "included_directories": []
-}"###;
 
 impl FileManager {
     fn save (&self) {
