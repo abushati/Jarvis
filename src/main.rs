@@ -1,38 +1,12 @@
-use std::sync::Arc;
 use std::{env, fs, path::PathBuf,path::Path, str::FromStr};
 extern crate serde;
 extern crate serde_json;
 use serde::{Serialize, Deserialize};
 use std::io::prelude::*;
-use chrono::{DateTime, Utc};
 use std::env::args;
-use std::collections::HashMap;
-use std::fs::OpenOptions;
 use core::fmt::Debug;
-
-#[derive(Serialize, Deserialize, Debug)]
-struct File {
-    path: std::path::PathBuf,
-    file_name: String,
-    last_accessed: std::time::SystemTime,
-    last_modified:std::time::SystemTime,
-    created: std::time::SystemTime,
-}
-
-#[derive(Debug,Serialize, Deserialize)]
-struct Directory {
-    path: std::path::PathBuf,
-    files: Vec<File>,
-    child_directories: Vec<Directory>,
-}
-
-
-// struct FileCleaner {
-//     file_manager: FileManager,
-//     max_file_age: u64,
-//     // to_delete_queue: PathBuf
-// }
-
+mod filesystem;
+use filesystem::{Directory,File};
 
 struct CliAction {
     cmd: Box<dyn CLICommand>,
