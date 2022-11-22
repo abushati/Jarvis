@@ -7,7 +7,8 @@ use std::env::args;
 use core::fmt::Debug;
 mod filesystem;
 use filesystem::{Directory,File};
-
+mod filecleaner;
+use filecleaner::FileCleaner;
 struct CliAction {
     cmd: Box<dyn CLICommand>,
 }
@@ -131,83 +132,6 @@ impl FileManager {
     }
 
 
-// impl FileCleaner{
-//     fn clean(&self){
-//         let dirs_to_clean = &self.file_manager.included_directories;
-//         for dir in dirs_to_clean{
-//             self.clean_dir_files(dir);
-//         }
-//     }
-//     fn check_excluded (&self, dir: &Directory, let_dir_to_check: &Vec<Directory> ) -> bool{
-//         for excluded_dir in let_dir_to_check {
-//             if dir.path == excluded_dir.path{
-//                 return true
-//             }
-//             if !excluded_dir.child_directories.is_empty(){            
-//                 if self.check_excluded(dir, &excluded_dir.child_directories){
-//                     return true
-//                 }
-    
-//             }
-//         }
-//         false
-//     }
-//     fn check_dir_in_excluded(&self, dir: &Directory) -> bool {
-//         return self.check_excluded(&dir, &self.file_manager.excluded_directories)
-//     }
-//     fn clean_dir_files(&self, dir: &Directory) {
-//         if self.check_dir_in_excluded(dir){
-//             println!("{:?} dir is excluded", dir.path);
-//             return
-//         }
-        
-//         let mut to_delete_queue: Vec<String>  = vec![];
-//         let mut file = OpenOptions::new()
-//         .read(true)
-//         .open("to_delete_queue.txt")
-//         .unwrap();
-
-//         let mut buf = String::new();
-//         file.read_to_string(&mut buf).unwrap();
-//         let list :Vec<&str> = buf.lines().collect();
-//         println!("from buff{:?}", list);
-
-//         let mut file = OpenOptions::new()
-//         .write(true)
-//         .create(true)
-//         .append(true)
-//         .open("to_delete_queue.txt")
-//         .unwrap();
-
-//         for file in &dir.files {
-//             let now: DateTime<Utc> = file.last_accessed.into();
-//             let file_path = file.path.to_str().unwrap();
-//             if !list.contains(&file_path) && self.should_delete_file(file){
-//                 to_delete_queue.push(String::from(file_path));
-//             }
-//         }
-
-//         for path in to_delete_queue {
-//             file.write_all(path.as_bytes()).expect("write failed");
-//             file.write_all("\n".as_bytes());
-//         }
-
-//         for dir in &dir.child_directories{
-//             self.clean_dir_files(dir)
-//         }
-//     }
-    
-//     fn should_delete_file(&self, file: &File) -> bool {
-//         if file.last_accessed.elapsed().unwrap().as_secs() > self.max_file_age{
-//             return true
-//         }
-//         return false
-//         // println!("{:?} file name to delete",file.last_accessed.elapsed().unwrap());
-//         // return true
-//     }
-    
-// }
-
 
 trait  CLICommand {
     fn run(&self){}
@@ -215,7 +139,7 @@ trait  CLICommand {
 enum primary_cmds {
     MANAGER,
     //  CONFIG,
-    //   CLEAN
+      CLEAN
     }
 impl FromStr for primary_cmds {
 
@@ -226,7 +150,7 @@ impl FromStr for primary_cmds {
         match input.as_str() {
             "MANAGER"  => Ok(primary_cmds::MANAGER),
             // "CONFIG"  => Ok(primary_cmds::CONFIG),
-            // "CLEAN"  => Ok(primary_cmds::CLEAN),
+            "CLEAN"  => Ok(primary_cmds::CLEAN),
             _      => Err(()),
         }
     }
@@ -279,6 +203,17 @@ struct manager_cmd{
     sub_action: Option<file_manager_section>,
     value: Option<String>
 }
+
+struct filecleaner_cmd{
+    filemanager: FileManager
+}
+
+impl CLICommand for filecleaner_cmd {
+    fn run(&self) {
+        let cleaner = FileCleaner{file_manager: self.filemanager, max_file_age:34};
+    }
+}
+
 impl CLICommand for manager_cmd {
     fn run(&self) {
         println!("{:?}",&self.manager_action);
@@ -298,13 +233,6 @@ impl CLICommand for manager_cmd {
 }
 
 fn parse_args() -> Result<CliAction,String> {
-    // {"manager":{"add":["action","type"],
-    //             "remove":["action","type"],
-    //             "reset": []
-    //              },
-    //"config":["action","key","value"]
-    //         
-    // "clean":{}}
     let args:Vec<String> = args().collect();
     if !(args.len() > 1){
         return Err(String::from_str("invalid args len").unwrap());

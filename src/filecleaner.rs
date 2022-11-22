@@ -1,8 +1,9 @@
+
 mod filesystem;
 use filesystem::{Directory,File};
 
-struct FileCleaner {
-    file_manager: FileManager,
+pub struct FileCleaner {
+    pub file_manager: FileManager,
     max_file_age: u64,
     // to_delete_queue: PathBuf
 }
