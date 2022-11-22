@@ -9,6 +9,7 @@ mod filesystem;
 use filesystem::{Directory,File};
 mod filecleaner;
 use filecleaner::FileCleaner;
+
 struct CliAction {
     cmd: Box<dyn CLICommand>,
 }
@@ -211,6 +212,7 @@ struct filecleaner_cmd{
 impl CLICommand for filecleaner_cmd {
     fn run(&self) {
         let cleaner = FileCleaner{file_manager: self.filemanager, max_file_age:34};
+        cleaner.clean()
     }
 }
 
@@ -285,7 +287,11 @@ fn parse_args() -> Result<CliAction,String> {
                     Ok(CliAction{cmd:Box::new(cmd)})
                 },
                 // primary_cmds::CONFIG => {return Err()},
-                // primary_cmds::CLEAN => {return Err()}
+                primary_cmds::CLEAN => {
+                    let file_manager = FileManager::default().load();
+                    let cmd = filecleaner_cmd{filemanager:file_manager};
+                    Ok(CliAction{cmd:Box::new(cmd)})
+                }
 
             }
 

@@ -1,7 +1,12 @@
 
 mod filesystem;
 use filesystem::{Directory,File};
-
+use std::fs::OpenOptions;
+use chrono::{DateTime, Utc};
+use std::fs::File;
+use std::io::prelude::*;
+mod cli;
+use cli::FileManager;
 pub struct FileCleaner {
     pub file_manager: FileManager,
     max_file_age: u64,
@@ -9,7 +14,7 @@ pub struct FileCleaner {
 }
 
 impl FileCleaner{
-    fn clean(&self){
+    pub fn clean(&self){
         let dirs_to_clean = &self.file_manager.included_directories;
         for dir in dirs_to_clean{
             self.clean_dir_files(dir);
