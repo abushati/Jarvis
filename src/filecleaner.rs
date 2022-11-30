@@ -1,15 +1,13 @@
 
-mod filesystem;
-use filesystem::{Directory,File};
+// mod filesystem;
+use crate::filesystem::{Directory,File, FileManager};
 use std::fs::OpenOptions;
 use chrono::{DateTime, Utc};
-use std::fs::File;
+// use std::fs::File;
 use std::io::prelude::*;
-mod cli;
-use cli::FileManager;
 pub struct FileCleaner {
     pub file_manager: FileManager,
-    max_file_age: u64,
+    pub max_file_age: u64,
     // to_delete_queue: PathBuf
 }
 
