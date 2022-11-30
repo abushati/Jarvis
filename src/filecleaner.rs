@@ -44,13 +44,23 @@ impl FileCleaner{
         let mut to_delete_queue: Vec<String>  = vec![];
         let mut file = OpenOptions::new()
         .read(true)
-        .open("to_delete_queue.txt")
-        .unwrap();
+        .open("to_delete_queue.txt");
+        if file.is_err(){
+            let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open("to_delete_queue.txt")
+            .unwrap();
+        }
 
+        let mut file = OpenOptions::new()
+        .read(true)
+        .open("to_delete_queue.txt").unwrap();
+        
         let mut buf = String::new();
         file.read_to_string(&mut buf).unwrap();
         let list :Vec<&str> = buf.lines().collect();
-        println!("from buff{:?}", list);
+        // println!("from buff{:?}", list);
 
         let mut file = OpenOptions::new()
         .write(true)
