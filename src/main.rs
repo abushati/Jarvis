@@ -1,11 +1,13 @@
 
-use std::{fs,path::PathBuf,str::FromStr};
+use std::{fs,path::{PathBuf, Path},str::FromStr, os};
 extern crate serde;
 extern crate serde_json;
 use serde::{Serialize, Deserialize};
 use std::io::prelude::*;
 use std::env::args;
 use core::fmt::Debug;
+use std::env;
+
 
 mod filesystem;
 use filesystem::{Directory,File, FileManager, file_manager_section};
@@ -152,6 +154,15 @@ fn parse_args() -> Result<CliAction,String> {
                     
                     let path = args.get(4);
                     if !path.is_none(){
+                        let project_root = env::current_exe().unwrap();
+                        let root:Vec<&str> = project_root.to_str().unwrap().split("jarvis\\target").collect();
+                        let root_starts_with = root.get(0).unwrap();
+
+                        let path_buf = PathBuf::from_str(path.unwrap()).unwrap();
+                        if path_buf.starts_with( root_starts_with){
+                            return Err("File/directory can't be in project file".to_string());
+                        }
+                        
                         value = path.unwrap();
 
                     } else {
