@@ -88,7 +88,7 @@ struct filecleaner_cmd{
 
 impl CLICommand for filecleaner_cmd {
     fn run(&self) {
-        let cleaner = FileCleaner{file_manager: self.filemanager.clone(), max_file_age:34};
+        let cleaner = FileCleaner{file_manager: self.filemanager.clone(), max_file_age:34, db: None};
         cleaner.clean()
     }
 }
