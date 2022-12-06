@@ -24,6 +24,7 @@ impl FileCleaner{
         // INSERT INTO users VALUES ('Alice', 42);
         // INSERT INTO users VALUES ('Bob', 69);
         // ";
+        
         connection.execute(query);
         return connection
     }
