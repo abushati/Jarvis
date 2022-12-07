@@ -4,6 +4,9 @@ use crate::filesystem::{Directory,File, FileManager};
 extern crate sqlite;
 use std::fs::OpenOptions;
 use chrono::{DateTime, Utc, offset};
+use std::string::String;
+use sqlite::Row;
+use sqlite::Value;
 // use std::fs::File;
 use std::io::prelude::*;
 pub struct FileCleaner {
@@ -29,19 +32,18 @@ impl FileCleaner{
         return connection
     }
 
-    fn run_query(&self, query: String) -> String {
+    fn run_query(&self, query: String) -> bool {
         let db = self.db.as_ref().ok_or("bad").unwrap();
-        println!("{}",query);
+        let mut exist = false;
         for row in db
             .prepare(query)
             .unwrap()
             .into_iter()
             .map(|row| row.unwrap()){
-                println!("{:?}", row);
                 let e: i64 = row.read("count(*)");
-
-                println!("{}",e);
-
+                if e == 0 {
+                    exist = true;
+                }
             }
 
             // let query = "SELECT * FROM users WHERE age > ?";
@@ -58,7 +60,7 @@ impl FileCleaner{
             //     println!("age = {}", row.read::<i64, _>("age"));
             // }
 
-            return "results".to_string()
+            return exist
     }
 
     pub fn clean(mut self){
@@ -69,6 +71,7 @@ impl FileCleaner{
         for dir in dirs_to_clean{
             self.clean_dir_files(dir);
         }
+        self._clean();
     }
     fn check_excluded (&self, dir: &Directory, let_dir_to_check: &Vec<Directory> ) -> bool{
         for excluded_dir in let_dir_to_check {
@@ -100,9 +103,12 @@ impl FileCleaner{
             if self.should_delete_file(file){
                 // println!("{:?}", format!("select count(*) from delete_queue where to_delete = False and file_path = '{}';",file_path));
                 // let exist = self.run_query(format!("select count(*) from delete_queue where to_delete = False and file_path = '{}';",file_path));
-                let exist = self.run_query(format!("select count(*) from delete_queue limit 10;"));
-
-                // self.run_query(format!("insert into delete_queue values ({},{},{});",file_path,false,chrono::offset::Utc::now().to_string()));
+                let exist = self.run_query(format!("select count(*) from delete_queue"));
+                if exist {
+                    println!("Skipping writing file");
+                    continue;
+                }
+                self.run_query(format!("insert into delete_queue values ({},{},{});",file_path,false,chrono::offset::Utc::now().to_string()));
                 println!("{:?}", exist);
             }
         }
@@ -121,4 +127,19 @@ impl FileCleaner{
         // return true
     }
     
+    fn _clean(&self) {
+        println!("he");
+        let db = self.db.as_ref().ok_or("bad").unwrap();
+        let query = "select file_path from delete_queue;";
+        for row in db
+        .prepare(query)
+        .unwrap()
+        .into_iter()
+        .map(|row| row.unwrap()){
+            let e: &str = row.read("file_path");
+            println!("{:?}",e);
+        }
+    }
+
+  
 }
