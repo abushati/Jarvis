@@ -32,6 +32,13 @@ impl FileCleaner{
         return connection
     }
 
+    fn run_query2(&self, query: String) {
+        println!("{}", query);
+        println!("here");
+        let db = self.db.as_ref().ok_or("bad").unwrap();
+        db.execute(query).unwrap();
+    }
+
     fn run_query(&self, query: String) -> bool {
         let db = self.db.as_ref().ok_or("bad").unwrap();
         let mut exist = false;
@@ -41,7 +48,8 @@ impl FileCleaner{
             .into_iter()
             .map(|row| row.unwrap()){
                 let e: i64 = row.read("count(*)");
-                if e == 0 {
+                println!("{}",e);
+                if e != 0 {
                     exist = true;
                 }
             }
@@ -103,12 +111,12 @@ impl FileCleaner{
             if self.should_delete_file(file){
                 // println!("{:?}", format!("select count(*) from delete_queue where to_delete = False and file_path = '{}';",file_path));
                 // let exist = self.run_query(format!("select count(*) from delete_queue where to_delete = False and file_path = '{}';",file_path));
-                let exist = self.run_query(format!("select count(*) from delete_queue"));
+                let exist = self.run_query(format!("select count(*) from delete_queue where to_delete = False and file_path = '{}';",file_path));
                 if exist {
                     println!("Skipping writing file");
                     continue;
                 }
-                self.run_query(format!("insert into delete_queue values ({},{},{});",file_path,false,chrono::offset::Utc::now().to_string()));
+                self.run_query2(format!("insert into delete_queue values ('{}',{},'{}');",file_path,false,chrono::offset::Utc::now().to_string()));
                 println!("{:?}", exist);
             }
         }
