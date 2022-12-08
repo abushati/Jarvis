@@ -2,7 +2,9 @@
 // mod filesystem;
 use crate::filesystem::{Directory,File, FileManager};
 extern crate sqlite;
+use std::fs;
 use std::fs::OpenOptions;
+use std::os;
 use chrono::{DateTime, Utc, offset};
 use std::string::String;
 use sqlite::Row;
@@ -48,7 +50,6 @@ impl FileCleaner{
             .into_iter()
             .map(|row| row.unwrap()){
                 let e: i64 = row.read("count(*)");
-                println!("{}",e);
                 if e != 0 {
                     exist = true;
                 }
@@ -117,7 +118,7 @@ impl FileCleaner{
                     continue;
                 }
                 self.run_query2(format!("insert into delete_queue values ('{}',{},'{}');",file_path,false,chrono::offset::Utc::now().to_string()));
-                println!("{:?}", exist);
+                // println!("{:?}", exist);
             }
         }
 
@@ -135,18 +136,40 @@ impl FileCleaner{
         // return true
     }
     
+    pub fn reset(&self) {
+        let db = self.db.as_ref().ok_or("bad").unwrap();
+        let query = "delete from delete_queue";
+        db.execute(query);
+    }
+
+    fn delete_file(&self, path: &str) -> bool {
+        let del_file = fs::remove_file(path);
+        if del_file.is_err() {
+            return false
+        }
+        return true
+    }
+
     fn _clean(&self) {
         println!("he");
         let db = self.db.as_ref().ok_or("bad").unwrap();
-        let query = "select file_path from delete_queue;";
+        let query = "select file_path from delete_queue where to_delete = true;";
         for row in db
         .prepare(query)
         .unwrap()
         .into_iter()
         .map(|row| row.unwrap()){
             let e: &str = row.read("file_path");
-            println!("{:?}",e);
+            let ok = self.delete_file(e);
+            if ok {
+                db.execute(format!("delete from delete_queue where file_path = '{}';", e));
+            } else {
+                println!("File already deleted");
+            }
+            println!("heheh {:?}",e);
         }
+
+        
     }
 
   
