@@ -4,11 +4,12 @@ use crate::filesystem::{Directory,File, FileManager};
 extern crate sqlite;
 use std::fs;
 use std::fs::OpenOptions;
+use std::iter::Filter;
 use std::os;
+use std::env;
+use std::path::Path;
 use chrono::{DateTime, Utc, offset};
 use std::string::String;
-use sqlite::Row;
-use sqlite::Value;
 // use std::fs::File;
 use std::io::prelude::*;
 pub struct FileCleaner {
@@ -150,6 +151,20 @@ impl FileCleaner{
         return true
     }
 
+    fn send_to_archieve(&self, file_path: &str){
+        println!("asldjfaf");
+        let currect_path = env::current_dir().unwrap();
+        let archieve_path = format!("{}/{}",currect_path.to_str().unwrap(),"archieve");
+        println!("{}",archieve_path);
+        if !Path::new(archieve_path.as_str()).exists(){
+            fs::create_dir(&archieve_path).unwrap();
+        };
+        let new_file_name = format!("{}{}",Path::new(file_path).file_name().unwrap().to_str().unwrap(),"aadfasdf");
+        println!("{}",file_path);
+        fs::copy(file_path, format!("{}/{}",&archieve_path,new_file_name)).unwrap();
+
+    }   
+
     fn _clean(&self) {
         println!("he");
         let db = self.db.as_ref().ok_or("bad").unwrap();
@@ -160,6 +175,7 @@ impl FileCleaner{
         .into_iter()
         .map(|row| row.unwrap()){
             let e: &str = row.read("file_path");
+            self.send_to_archieve(e);
             let ok = self.delete_file(e);
             if ok {
                 db.execute(format!("delete from delete_queue where file_path = '{}';", e));
