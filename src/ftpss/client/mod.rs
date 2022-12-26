@@ -24,11 +24,11 @@ pub fn tcpconnect() {
     //     num += 1;
     // }
     let mut buffer = vec![];
-    let mut t = File::open("/Users/arvidbushati/Desktop/Projects/Jarvis/FileMananger.json").unwrap();
+    let mut t = File::open("/Users/arvidbushati/Desktop/Projects/Jarvis/test.docx").unwrap();
     
     println!("{:?}", t);
     t.read_to_end(&mut buffer);
-    
+    println!("{:?}",buffer);
     stream.write(&buffer);
     
 }

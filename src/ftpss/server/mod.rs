@@ -1,5 +1,4 @@
 use std::{net::{TcpListener, TcpStream}, io::Read};
-use std::str::from_utf8;
 use std::process::Command;
 use std::fs::File;
 use std::io::prelude::*;
@@ -9,8 +8,8 @@ fn handle_client(mut stream: TcpStream) {
     let i = stream.read_to_end(&mut t);
     let q = i.unwrap().to_string();
     println!("{:?}",q);
-    let cmd = from_utf8(&t).unwrap();
-    println!("{:?}",&cmd);
+    // let cmd = from_utf8(&t).unwrap();
+    // println!("{:?}",&cmd);
 
     // let mut output = Command::new(cmd);
     // output.status().expect("process failed to execute");
