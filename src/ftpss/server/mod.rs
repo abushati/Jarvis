@@ -1,6 +1,8 @@
 use std::{net::{TcpListener, TcpStream}, io::Read};
 use std::str::from_utf8;
 use std::process::Command;
+use std::fs::File;
+use std::io::prelude::*;
 
 fn handle_client(mut stream: TcpStream) {
     let mut t:Vec<u8> = vec![];
@@ -10,8 +12,11 @@ fn handle_client(mut stream: TcpStream) {
     let cmd = from_utf8(&t).unwrap();
     println!("{:?}",&cmd);
 
-    let mut output = Command::new(cmd);
-    output.status().expect("process failed to execute");
+    // let mut output = Command::new(cmd);
+    // output.status().expect("process failed to execute");
+
+    let mut f = File::create("/Users/arvidbushati/Desktop/tst.file").unwrap();
+    f.write_all(&t);
 
     println!();
     

@@ -1,11 +1,13 @@
 // pub mod ftpclient;
-
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
 use {
     chrono::{offset::TimeZone, DateTime, Utc},
     // regex::Regex,
     std::{
         borrow::Cow,
-        io::{copy, BufRead, BufReader, BufWriter, Cursor, Read, Write},
+        io::{copy, BufRead, BufWriter, Cursor, Read, Write},
         net::{SocketAddr, TcpStream, ToSocketAddrs},
         str::FromStr,
     },
@@ -21,9 +23,12 @@ pub fn tcpconnect() {
     //     stream.write(u.as_bytes());
     //     num += 1;
     // }
-
-    let cmd = "ls";
-    stream.write(cmd.as_bytes());
-    // stream.read(&mut [0; 128]);
-    // Ok(())
+    let mut buffer = vec![];
+    let mut t = File::open("/Users/arvidbushati/Desktop/Projects/Jarvis/FileMananger.json").unwrap();
+    
+    println!("{:?}", t);
+    t.read_to_end(&mut buffer);
+    
+    stream.write(&buffer);
+    
 }
