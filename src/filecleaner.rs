@@ -79,10 +79,25 @@ impl FileCleaner{
         println!("wrote to db");
         let dirs_to_clean = &self.file_manager.included_directories;
         for dir in dirs_to_clean{
-            self.clean_dir_files(dir);
+            self.clean_dir(dir);
         }
         self._clean();
     }
+
+    fn clean_dir(self, dir: &Directory){
+        let is_excluded: bool = self.check_excluded(&dir, &self.file_manager.excluded_directories);
+    
+        if is_excluded{
+            println!("{:?} dir is excluded", dir.path);
+            return
+        }
+        self.clean_dir_files(dir);
+
+        for dir in &dir.child_directories {
+            self.clean_dir(dir)
+        }
+    }
+
     fn check_excluded (&self, dir: &Directory, let_dir_to_check: &Vec<Directory> ) -> bool{
         for excluded_dir in let_dir_to_check {
             if dir.path == excluded_dir.path{
@@ -97,16 +112,8 @@ impl FileCleaner{
         }
         false
     }
-    fn check_dir_in_excluded(&self, dir: &Directory) -> bool {
-        return self.check_excluded(&dir, &self.file_manager.excluded_directories)
-    }
-    fn clean_dir_files(&self, dir: &Directory ) {
-        if self.check_dir_in_excluded(dir){
-            println!("{:?} dir is excluded", dir.path);
-            return
-        }
-        
-        
+    
+    fn clean_dir_files(&self, dir: &Directory ) {     
         for file in &dir.files {
             let now: DateTime<Utc> = file.last_accessed.into();
             let file_path = file.path.to_str().unwrap();
@@ -119,12 +126,7 @@ impl FileCleaner{
                     continue;
                 }
                 self.run_query2(format!("insert into delete_queue values ('{}',{},'{}');",file_path,false,chrono::offset::Utc::now().to_string()));
-                // println!("{:?}", exist);
             }
-        }
-
-        for dir in &dir.child_directories{
-            self.clean_dir_files(dir)
         }
     }
     
