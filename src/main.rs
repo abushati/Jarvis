@@ -23,10 +23,11 @@ async fn manual_hello() -> impl Responder {
     HttpResponse::Ok().body("Hey there!")
 }
 
-fn do_something() -> redis::RedisResult<()> {
+fn do_something(key: String, value: Vec<(&str,&String)>) -> redis::RedisResult<()> {
+    //docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
     let client = redis::Client::open("redis://localhost:6379")?;
     let mut con = client.get_connection()?;
-    let _ : () = con.set("my_key", 42)?;
+    let _ : () = con.hset_multiple(key,&value )?;
     /* do something here */
     Ok(())
 }
@@ -39,8 +40,10 @@ struct FileUpload {
 
 #[post("/upload_file_data/{id}")]
 async fn upload_file_data(request: web::Bytes,tid: web::Path<(u32,)>) -> impl Responder {
+    
     println!("{:?}",tid);
     println!("{:?}",request);
+    
     // let mut file = OpenOptions::new()
     //         .write(true)
     //         .create(true)
@@ -54,12 +57,12 @@ async fn upload_file_data(request: web::Bytes,tid: web::Path<(u32,)>) -> impl Re
 async fn upload_file(request: web::Json<FileUpload>) -> impl Responder {
     println!("{:?}",request);
     
-
+    let e = vec![("fileName",&request.fileName),("md5",&request.md5)];
     let id = Uuid::new_v4();
     let s_id = id.to_string();
     let upload_key = format!("upload_{}",&s_id);
 
-    do_something(upload_key,);
+    do_something(upload_key,e);
     HttpResponse::Ok().body(s_id)
 }
 
