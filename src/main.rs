@@ -5,7 +5,9 @@ use std::{fs::OpenOptions, io::Write};
 use actix_multipart::Multipart;
 use serde::Deserialize;
 use actix_web::{get, post, web, App,HttpRequest, HttpResponse, HttpServer, Responder};
-
+extern crate redis;
+use redis::Commands;
+use uuid::Uuid;
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -21,11 +23,18 @@ async fn manual_hello() -> impl Responder {
     HttpResponse::Ok().body("Hey there!")
 }
 
-
+fn do_something() -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://localhost:6379")?;
+    let mut con = client.get_connection()?;
+    let _ : () = con.set("my_key", 42)?;
+    /* do something here */
+    Ok(())
+}
 #[derive(Debug,Deserialize)]
 struct FileUpload {
     fileName: String,
-    // fileData: web::Bytes
+    md5: String,
+    // mimeType: String
 }
 
 #[post("/upload_file_data/{id}")]
@@ -44,12 +53,14 @@ async fn upload_file_data(request: web::Bytes,tid: web::Path<(u32,)>) -> impl Re
 #[post("/upload_file")]
 async fn upload_file(request: web::Json<FileUpload>) -> impl Responder {
     println!("{:?}",request);
-    let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open("foo.docx").unwrap();
-    // file.write(&request.fileData.as_bytes());
-    HttpResponse::Ok().body("s")
+    
+
+    let id = Uuid::new_v4();
+    let s_id = id.to_string();
+    let upload_key = format!("upload_{}",&s_id);
+
+    do_something(upload_key,);
+    HttpResponse::Ok().body(s_id)
 }
 
 
