@@ -7,7 +7,10 @@ use serde::Deserialize;
 use actix_web::{get, post, web, App,HttpRequest, HttpResponse, HttpServer, Responder};
 extern crate redis;
 use redis::Commands;
+use redis::{Value, FromRedisValue,RedisError};
+use std::collections::HashMap;
 use uuid::Uuid;
+use md5;
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -23,13 +26,24 @@ async fn manual_hello() -> impl Responder {
     HttpResponse::Ok().body("Hey there!")
 }
 
-fn do_something(key: String, value: Vec<(&str,&String)>) -> redis::RedisResult<()> {
+fn set_upload_file(key: String, value: Vec<(&str,&String)>) -> redis::RedisResult<()> {
     //docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
     let client = redis::Client::open("redis://localhost:6379")?;
     let mut con = client.get_connection()?;
     let _ : () = con.hset_multiple(key,&value )?;
     /* do something here */
     Ok(())
+}
+
+fn get_upload_file_data(id: &str) -> String {
+    let client = redis::Client::open("redis://localhost:6379").unwrap();
+    let mut con = client.get_connection().unwrap();
+    let key = format!("upload_{}",id);
+    println!("{:?}", key);
+    let data :Result<HashMap<String,String>, redis::RedisError> = con.hgetall(key);
+    let uploaded_file = data.unwrap();
+
+    return uploaded_file.get("md5").unwrap().to_string()
 }
 #[derive(Debug,Deserialize)]
 struct FileUpload {
@@ -38,31 +52,29 @@ struct FileUpload {
     // mimeType: String
 }
 
-#[post("/upload_file_data/{id}")]
-async fn upload_file_data(request: web::Bytes,tid: web::Path<(u32,)>) -> impl Responder {
-    
-    println!("{:?}",tid);
-    println!("{:?}",request);
-    
-    // let mut file = OpenOptions::new()
-    //         .write(true)
-    //         .create(true)
-    //         .open("foo.docx").unwrap();
-    // // file.write(&request.fileData.as_bytes());
-    HttpResponse::Ok().body("s")
-}
 
+#[post("/upload_file_data/{id}")]
+async fn upload_file_data(request: web::Bytes,tid: web::Path<(String,)>) -> impl Responder {
+    let saved_md5 = get_upload_file_data(&tid.0);
+    //GenericArray's docs are here 57 and it implements std::fmt::UpperHex and std::fmt::LowerHex
+    let digest = format!("{:x}",md5::compute(request));
+    println!("{:?}",&saved_md5);
+    println!("{:?}",&digest);
+    if &saved_md5 != &digest{
+        return HttpResponse::BadRequest().body("Body isnt equal to file metadata md5")
+    }
+
+    HttpResponse::Ok().body("File Uploaded")
+}
 
 #[post("/upload_file")]
 async fn upload_file(request: web::Json<FileUpload>) -> impl Responder {
-    println!("{:?}",request);
-    
     let e = vec![("fileName",&request.fileName),("md5",&request.md5)];
     let id = Uuid::new_v4();
     let s_id = id.to_string();
     let upload_key = format!("upload_{}",&s_id);
 
-    do_something(upload_key,e);
+    set_upload_file(upload_key, e);
     HttpResponse::Ok().body(s_id)
 }
 
