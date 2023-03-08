@@ -30,7 +30,8 @@ fn set_upload_file(key: String, value: Vec<(&str,&String)>) -> redis::RedisResul
     //docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
     let client = redis::Client::open("redis://localhost:6379")?;
     let mut con = client.get_connection()?;
-    let _ : () = con.hset_multiple(key,&value )?;
+    let _ : () = con.hset_multiple(&key,&value)?;
+    let _ : () = con.expire(&key,12)?;
     /* do something here */
     Ok(())
 }
