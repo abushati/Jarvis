@@ -32,7 +32,6 @@ fn set_upload_file(key: String, value: Vec<(&str,&String)>) -> redis::RedisResul
     let mut con = client.get_connection()?;
     let _ : () = con.hset_multiple(&key,&value)?;
     let _ : () = con.expire(&key,12)?;
-    /* do something here */
     Ok(())
 }
 
