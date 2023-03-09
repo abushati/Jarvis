@@ -15,5 +15,5 @@ re = requests.post('http://127.0.0.1:8080/upload_file', json=a)
 print(re.text)
 
 
-re = requests.post('http://127.0.0.1:8080/upload_file_data/{}'.format(re.text), data=f_bytes)
+re = requests.post('http://127.0.0.1:8080/upload_file_data/{}'.format(re.text), data=str(f_bytes))
 print(re.text)
