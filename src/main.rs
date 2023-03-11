@@ -67,10 +67,9 @@ fn push_upload(data:  HashMap<&str,String>) -> String {
     let mut con = client.get_connection().unwrap();
 
     let d = serde_json::to_string(&data).unwrap();
-    let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),d);
+    let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),);
 
     "ok".to_string()
-
 }
 
 #[post("/upload_file_data/{id}")]
