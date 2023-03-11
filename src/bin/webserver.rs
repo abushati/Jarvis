@@ -1,7 +1,4 @@
-mod ftpss;
 use bytes::Bytes;
-use ftpss::client::tcpconnect;
-use ftpss::server::server;
 use std::io::Read;
 use std::{fs::OpenOptions, io::Write};
 use actix_multipart::Multipart;
@@ -67,7 +64,7 @@ fn push_upload(data:  HashMap<&str,String>) -> String {
     let mut con = client.get_connection().unwrap();
 
     let d = serde_json::to_string(&data).unwrap();
-    let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),);
+    let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),d);
 
     "ok".to_string()
 }
