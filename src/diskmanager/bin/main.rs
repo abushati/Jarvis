@@ -13,7 +13,13 @@ fn main()  {
         let client = redis::Client::open("redis://localhost:6379").unwrap();
         let mut con = client.get_connection().unwrap();
         let key = "upload_queue";
-        let data : String = con.lpop(key,None).unwrap();
+        let data= con.lpop(key,None);
+        if data.is_err(){
+            println!("Nothing in queue, sleeping");
+            thread::sleep(Duration::from_secs(4));
+            continue;
+        }
+        let data: String = data.unwrap();
         println!("{:?}",data);
         let d = serde_json::from_str::<File>(&data).unwrap();
         let file_bytes = d.request.as_bytes();

@@ -28,6 +28,7 @@ features = [
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]
 
+
 [[bin]]
 name = "webserver"
 path = "src/webserver/bin/main.rs"
@@ -35,3 +36,7 @@ path = "src/webserver/bin/main.rs"
 [[bin]]
 name = "cli"
 path = "src/cli/bin/main.rs"
+
+[[bin]]
+name = "diskmanager"
+path = "src/diskmanager/bin/main.rs"
