@@ -27,3 +27,11 @@ features = [
     "fast-rng",          # Use a faster (but still sufficiently random) RNG
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]
+
+[[bin]]
+name = "webserver"
+path = "src/webserver/bin/main.rs"
+
+[[bin]]
+name = "cli"
+path = "src/cli/bin/main.rs"

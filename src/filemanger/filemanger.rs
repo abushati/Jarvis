@@ -1,25 +1,31 @@
-mod filemanger;
+use std::{env, fs, str::FromStr,path::PathBuf};
+extern crate serde;
+extern crate serde_json;
+use serde::{Deserialize,Serialize};
+use std::env::args;
+use std::io::prelude::*;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct File {
-    path: std::path::PathBuf,
-    file_name: String,
-    last_accessed: std::time::SystemTime,
-    last_modified:std::time::SystemTime,
-    created: std::time::SystemTime,
+    pub path: std::path::PathBuf,
+    pub file_name: String,
+    pub last_accessed: std::time::SystemTime,
+    pub last_modified:std::time::SystemTime,
+    pub created: std::time::SystemTime,
 }
 
 #[derive(Debug,Serialize, Deserialize)]
 pub struct Directory {
-    path: std::path::PathBuf,
-    files: Vec<File>,
-    child_directories: Vec<Directory>,
+    pub path: std::path::PathBuf,
+    pub files: Vec<File>,
+    pub child_directories: Vec<Directory>,
 }
 
 #[derive(Debug,Serialize, Deserialize, Default)]
 pub struct FileManager {
-    excluded_files: Vec<File>,
-    excluded_directories: Vec<Directory>,
-    included_directories: Vec<Directory>,
+    pub excluded_files: Vec<File>,
+    pub excluded_directories: Vec<Directory>,
+    pub included_directories: Vec<Directory>,
 }
 
 const default_file_manager_template:&str = r###"{
@@ -30,7 +36,7 @@ const default_file_manager_template:&str = r###"{
 
 
 impl FileManager {
-    fn save (&self) {
+    pub fn save (&self) {
         let file_name = "FileMananger.json";
         // let current_dir = String::new(env::current_dir().unwrap());
         let mut file = fs::File::create(&file_name).unwrap();
@@ -40,7 +46,7 @@ impl FileManager {
             .unwrap();
     }
 
-    fn load (&self) -> FileManager {
+    pub fn load (&self) -> FileManager {
         let file_name = "FileMananger.json";
         let file_string; 
         let mut file = fs::read_to_string(&file_name);
@@ -63,14 +69,14 @@ impl FileManager {
         return manager.unwrap()
     }
 
-    fn reset(&self) -> FileManager{
+    pub fn reset(&self) -> FileManager{
         fs::remove_file("FileMananger.json").unwrap();
         let manager = self.load();
         manager.save();
         return manager;
     }
     //Need a way to detect duplicates and stop
-    fn add(mut self, section: &file_manager_section, path: &str ) -> Self{
+    pub fn add(mut self, section: &file_manager_section, path: &str ) -> Self{
         match section {
             file_manager_section::EXCLUDE_DIR => {
                 self.excluded_directories.push(walk_directory(PathBuf::from_str(path).unwrap()));
@@ -109,7 +115,7 @@ impl FileManager {
     // {
     //     return self
     // }
-    fn remove(mut self, section: &file_manager_section, path: &str ) -> Self{
+    pub fn remove(mut self, section: &file_manager_section, path: &str ) -> Self{
         match section {
             file_manager_section::EXCLUDE_DIR => {
                 if let Some(pos) = self.excluded_directories.iter().position(|x| * &x.path.to_str().ok_or("not string").unwrap() == path) {
@@ -143,18 +149,13 @@ impl FileManager {
 
 
 #[derive(Debug)]
-enum file_manager_section {
+pub enum file_manager_section {
     EXCLUDE_DIR,
     INCLUDE_DIR,
     EXCLUDE_FILE,
 }
 
-#[derive(Debug,PartialEq)]
-enum manager_actions {
-    ADD,
-    REMOVE,
-    RESET
-    }
+
 
 impl FromStr for file_manager_section {
 
@@ -171,15 +172,31 @@ impl FromStr for file_manager_section {
     }
 }
 
-impl FromStr for manager_actions {
-    type Err = ();
-    fn from_str(input: &str) -> Result<manager_actions, Self::Err> {
-        let  input = input.to_uppercase();
-        match input.as_str() {
-            "ADD"  => Ok(manager_actions::ADD),
-            "REMOVE"  => Ok(manager_actions::REMOVE),
-            "RESET"  => Ok(manager_actions::RESET),
-            _      => Err(()),
+ 
+
+fn walk_directory(directory:std::path::PathBuf) -> Directory {
+    let mut current_dir_files: Vec<File> = Vec::new();
+    let mut current_dir_dir: Vec<Directory> = Vec::new();
+    let directs = fs::read_dir(&directory).unwrap();
+    for  entry in directs {
+        let entry = entry.unwrap();
+        let file_name = entry.file_name().into_string().unwrap();
+        let file_path = entry.path();
+        
+        let metadata = fs::metadata(&file_path).unwrap();
+        if metadata.is_file() {
+            let file = File {
+                path: file_path,
+                file_name: file_name,
+                last_accessed: metadata.accessed().unwrap(),
+                last_modified: metadata.modified().unwrap(),
+                created: metadata.created().unwrap(),
+                };
+            current_dir_files.push(file);
+        }
+        else if metadata.is_dir() {
+            current_dir_dir.push(walk_directory(file_path))
         }
     }
-}  
+    return Directory {path: directory, files: current_dir_files, child_directories: current_dir_dir};
+}

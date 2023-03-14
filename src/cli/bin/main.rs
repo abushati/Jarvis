@@ -1,11 +1,9 @@
-use std::{env, fs, path::PathBuf,path::Path, str::FromStr};
+use std::{env, fs, str::FromStr};
 extern crate serde;
 extern crate serde_json;
-use serde::{Serialize, Deserialize};
-use std::io::prelude::*;
 use std::env::args;
-use core::fmt::Debug;
-mod filemanger;
+extern crate jarvis;
+use jarvis::filemanger::filemanger::{Directory,File,FileManager,};
 
 struct CliAction {
     cmd: Box<dyn CLICommand>,
@@ -39,6 +37,27 @@ struct manager_cmd{
     sub_action: Option<file_manager_section>,
     value: Option<String>
 }
+
+#[derive(Debug,PartialEq)]
+enum manager_actions {
+    ADD,
+    REMOVE,
+    RESET
+    }
+
+    
+impl FromStr for manager_actions {
+    type Err = ();
+    fn from_str(input: &str) -> Result<manager_actions, Self::Err> {
+        let  input = input.to_uppercase();
+        match input.as_str() {
+            "ADD"  => Ok(manager_actions::ADD),
+            "REMOVE"  => Ok(manager_actions::REMOVE),
+            "RESET"  => Ok(manager_actions::RESET),
+            _      => Err(()),
+        }
+    }
+} 
 
 impl CLICommand for manager_cmd {
     fn run(&self) {
@@ -140,32 +159,4 @@ pub fn main() {
         }
         
     }
-}
-
-
-fn walk_directory(directory:std::path::PathBuf) -> Directory {
-    let mut current_dir_files: Vec<File> = Vec::new();
-    let mut current_dir_dir: Vec<Directory> = Vec::new();
-    let directs = fs::read_dir(&directory).unwrap();
-    for  entry in directs {
-        let entry = entry.unwrap();
-        let file_name = entry.file_name().into_string().unwrap();
-        let file_path = entry.path();
-        
-        let metadata = fs::metadata(&file_path).unwrap();
-        if metadata.is_file() {
-            let file = File {
-                path: file_path,
-                file_name: file_name,
-                last_accessed: metadata.accessed().unwrap(),
-                last_modified: metadata.modified().unwrap(),
-                created: metadata.created().unwrap(),
-                };
-            current_dir_files.push(file);
-        }
-        else if metadata.is_dir() {
-            current_dir_dir.push(walk_directory(file_path))
-        }
-    }
-    return Directory {path: directory, files: current_dir_files, child_directories: current_dir_dir};
 }

@@ -1,17 +1,13 @@
 
-// mod filesystem;
-use crate::filesystem::{Directory,File, FileManager};
+use crate::filemanger::filemanger::{Directory,FileManager,File};
 extern crate sqlite;
 use std::fs;
 use std::fs::OpenOptions;
-use std::iter::Filter;
-use std::os;
-use std::env;
 use std::path::Path;
 use chrono::{DateTime, Utc, offset};
 use std::string::String;
-// use std::fs::File;
 use std::io::prelude::*;
+use std::env;
 pub struct FileCleaner {
     pub file_manager: FileManager,
     pub max_file_age: u64,
@@ -84,7 +80,7 @@ impl FileCleaner{
         self._clean();
     }
 
-    fn clean_dir(self, dir: &Directory){
+    fn clean_dir(&self, dir: &Directory){
         let is_excluded: bool = self.check_excluded(&dir, &self.file_manager.excluded_directories);
     
         if is_excluded{
