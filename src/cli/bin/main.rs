@@ -3,7 +3,7 @@ extern crate serde;
 extern crate serde_json;
 use std::env::args;
 extern crate jarvis;
-use jarvis::filemanger::filemanger::{Directory,File,FileManager,};
+use jarvis::filemanger::filemanger::{Directory,File,FileManager,file_manager_section};
 
 struct CliAction {
     cmd: Box<dyn CLICommand>,
@@ -45,7 +45,7 @@ enum manager_actions {
     RESET
     }
 
-    
+
 impl FromStr for manager_actions {
     type Err = ();
     fn from_str(input: &str) -> Result<manager_actions, Self::Err> {

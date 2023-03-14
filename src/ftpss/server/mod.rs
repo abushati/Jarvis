@@ -8,19 +8,10 @@ fn handle_client(mut stream: TcpStream) {
     let i = stream.read_to_end(&mut t);
     let q = i.unwrap().to_string();
     println!("{:?}",q);
-    // let cmd = from_utf8(&t).unwrap();
-    // println!("{:?}",&cmd);
-
-    // let mut output = Command::new(cmd);
-    // output.status().expect("process failed to execute");
-
     let mut f = File::create("/Users/arvidbushati/Desktop/tst.file").unwrap();
     f.write_all(&t);
 
     println!();
-    
-
-    
 }
 
 pub fn server() -> std::io::Result<()> {
