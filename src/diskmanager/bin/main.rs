@@ -2,6 +2,7 @@ use std::{fs::OpenOptions, io::Write};
 extern crate redis;
 use redis::Commands;
 use std::{thread, time::Duration};
+
 #[derive(serde::Deserialize)]
 struct File {
     fileName: String,
