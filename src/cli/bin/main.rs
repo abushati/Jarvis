@@ -3,8 +3,7 @@ extern crate serde;
 extern crate serde_json;
 use std::env::args;
 extern crate jarvis;
-use jarvis::filemanger::filemanger::{FileManager,file_manager_section};
-use jarvis::cli::commands::manager;
+use jarvis::cli::commands::{manager,sync};
 use jarvis::cli::commands::utils::CliAction;
 // use jarvis::cli::commands::utils::
 
@@ -12,6 +11,7 @@ use jarvis::cli::commands::utils::CliAction;
 
 enum primary_cmds {
     MANAGER,
+    SYNC
     //  CONFIG,
     //   CLEAN
     }
@@ -22,7 +22,8 @@ impl FromStr for primary_cmds {
     fn from_str(input: &str) -> Result<primary_cmds, Self::Err> {
         let  input = input.to_uppercase();
         match input.as_str() {
-            "MANAGER"  => Ok(primary_cmds::MANAGER),
+            "MANAGER" => Ok(primary_cmds::MANAGER),
+            "SYNC" => Ok(primary_cmds::SYNC),
             // "CONFIG"  => Ok(primary_cmds::CONFIG),
             // "CLEAN"  => Ok(primary_cmds::CLEAN),
             _      => Err(()),
@@ -49,14 +50,14 @@ fn parse_args() -> Result<CliAction,String> {
             match act {
                 primary_cmds::MANAGER => {
                     return Ok(manager::get_cmd(args).unwrap());
-                    println!("here");
                     
                 },
+                primary_cmds::SYNC => {
+                    return  Ok(sync::get_cmd(args).unwrap())
+                }
                 // primary_cmds::CONFIG => {return Err()},
                 // primary_cmds::CLEAN => {return Err()}
-
             }
-
         }
         Err(()) => {return Err(format!("invalid primary arg {}, valid args: {:?}", "primary_cmd", "valid_primary_cmds"));}
     } 
