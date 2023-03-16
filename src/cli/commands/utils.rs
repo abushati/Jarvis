@@ -1,7 +1,7 @@
-trait  CLICommand {
+pub trait  CLICommand {
     fn run(&self){}
 }
 
-struct CliAction {
-    cmd: Box<dyn CLICommand>,
+pub struct CliAction {
+    pub cmd: Box<dyn CLICommand>,
 }

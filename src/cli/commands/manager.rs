@@ -1,11 +1,10 @@
-
-use std::{env, fs, str::FromStr};
+use std::{str::FromStr};
 extern crate serde;
 extern crate serde_json;
-use std::env::args;
-// extern crate jarvis;
-// use jarvis::filemanger::filemanger::{FileManager,file_manager_section};
-mod utils;
+
+use crate::filemanger::filemanger::{file_manager_section,FileManager};
+use super::utils::{CLICommand,CliAction};
+
 struct manager_cmd {
     manager_action: manager_actions,
     sub_action: Option<file_manager_section>,
@@ -33,6 +32,54 @@ impl FromStr for manager_actions {
     }
 } 
 
+pub fn get_cmd(args: Vec<String>) -> Result<CliAction,String>{
+
+    let manager_action;
+    let manager_section;
+    let value;
+
+    if args.get(2).is_none(){
+        return Err(format!("No sub action provided, valid args: {:?}" , "adf"));
+    }
+    match manager_actions::from_str(args.get(2).unwrap()){
+        Ok(action) => {
+            manager_action = action;
+        }
+        Err(()) => {
+            return Err(format!("Invalid manager action" ));
+        }
+    }
+    
+    if manager_action == manager_actions::RESET {
+        let cmd = manager_cmd{manager_action:manager_action, sub_action: None, value: None};
+        return Ok(CliAction{cmd:Box::new(cmd)});
+    }
+
+    let section = args.get(3).unwrap();
+    match file_manager_section::from_str(&section.as_str()) {
+        Ok(section) => {
+            manager_section = section
+        }
+        Err(()) => {
+            return Err(format!("Invalid subaction {}, valid args: {:?}" ,"adf", "adf"));
+        }
+    }
+    
+    let path = args.get(4);
+    if !path.is_none(){
+        value = path.unwrap();
+
+    } else {
+        return Err(format!("path not provided"));
+    }
+
+    let cmd = manager_cmd{manager_action:manager_action,sub_action:Some(manager_section),value:Some(value.to_string())};
+    Ok(CliAction{cmd:Box::new(cmd)})
+
+
+}
+
+    
 impl CLICommand for manager_cmd {
     fn run(&self) {
         println!("{:?}",&self.manager_action);
