@@ -1,6 +1,6 @@
-pub trait  CLICommand {
-    fn run(&self){}
-    fn get_cmd(&self,args: Vec<String>){}
+pub trait CLICommand {
+    fn run(&self);
+    fn get_cmd (&self, args: Vec<String>) -> Result<CliAction,String>;
 }
 
 pub struct CliAction {
