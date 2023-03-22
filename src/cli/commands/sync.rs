@@ -3,6 +3,8 @@ use std::fs::{read_dir,read,OpenOptions,write};
 use std::io::Write;
 use std::path;
 use std::str::from_utf8;
+use image;
+
 #[derive(Default)]
 
 
@@ -26,14 +28,16 @@ impl CLICommand for sync_cmd {
                         let file_name = entry.file_name();
                         let file_path = entry.path();
                         let file_meta = entry.metadata().unwrap();
-                        let file_bytes = read(&file_path).unwrap();
+                        // let file_bytes = read(&file_path).unwrap();
+                        let file_bytes = image::open(&file_path).unwrap();
                         // write("Users/arvidbushati/Desktop/Projects/Jarvis/here.txt",&file_bytes).unwrap();
 
                         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
-                        .open("/Users/arvidbushati/Desktop/Projects/Jarvis/here.txt").unwrap();
-                        file.write_all(&file_bytes).unwrap();
+                        .open("/Users/arvidbushati/Desktop/Projects/Jarvis/here").unwrap();
+                        // String::from_utf8_lossy()
+                        file.write_all(&file_bytes.as_bytes()).unwrap();
                         println!("{:?},{:?},{:?},{:?}",file_name,&file_path,file_meta,file_bytes);
         
                     }
