@@ -178,20 +178,21 @@ impl CLICommand for sync_cmd {
                         let formater = image::ImageFormat::from_path(&file_path).unwrap();
                         println!("Status: {:?}", &input_image.as_bytes());
                         let (width, height) =input_image.dimensions();
+                        println!("Status: {},{}",width,height);
                         let mut output_path = "/Users/arvidbushati/Desktop/Projects/Jarvis/here.jpg";
                         let client = Client::new();
                         let post = client.post("http://127.0.0.1:8080/upload_file_data/adfasf")
                         .body(input_image.clone().into_bytes())
                         .send().unwrap();
                         println!("Status: {}", post.status());
-                        image::save_buffer_with_format(
-                            &mut output_path,
-                            &input_image.into_bytes(),
-                            width,
-                            height,
-                            ColorType::Rgb8,
-                            formater,
-                        ).unwrap();
+                        // image::save_buffer_with_format(
+                        //     &mut output_path,
+                        //     &input_image.into_bytes(),
+                        //     width,
+                        //     height,
+                        //     ColorType::Rgb8,
+                        //     formater,
+                        // ).unwrap();
                         
 
                         // let mut output_file = OpenOptions::new().write(true).truncate(true).create(true).open(output_path).expect("Failed to create output file");

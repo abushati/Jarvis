@@ -11,6 +11,8 @@ use std::collections::HashMap;
 use uuid::Uuid;
 use md5;
 use std::str;
+use image;
+use image::ImageFormat::Jpeg;
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -72,20 +74,33 @@ fn push_upload(data:  HashMap<&str,String>) -> String {
 #[post("/upload_file_data/{id}")]
 async fn upload_file_data(request: web::Bytes,tid: web::Path<(String,)>) -> impl Responder {
     println!("{:?}",&request.to_vec());
-    let  uploaded_file = get_upload_file_data(&tid.0);
-    let saved_md5 = uploaded_file.get("md5").unwrap().to_string();
-    let fileName = uploaded_file.get("fileName").unwrap().to_string();
-    //GenericArray's docs are here 57 and it implements std::fmt::UpperHex and std::fmt::LowerHex
-    let digest = format!("{:x}",md5::compute(&request));
-    println!("{:?}",&saved_md5);
-    println!("{:?}",&digest);
-    // if &saved_md5 != &digest{
-    //     return HttpResponse::BadRequest().body("Body isnt equal to file metadata md5")
-    // }
-    let data = HashMap::from([("fileName",fileName), ("saved_md5",saved_md5),("request", str::from_utf8(&request).unwrap().to_string() )]);
-    push_upload(data);
+    let mut output_path = "/Users/arvidbushati/Desktop/Projects/Jarvis/here.jpg";
+    
+    image::save_buffer_with_format(
+        &mut output_path,
+        &request.to_vec(),
+        1385,
+        397,
+        image::ColorType::Rgb8,
+        Jpeg,
+    ).unwrap();
     HttpResponse::Ok().body("File Uploaded")
 }
+
+    // let  uploaded_file = get_upload_file_data(&tid.0);
+    // let saved_md5 = uploaded_file.get("md5").unwrap().to_string();
+    // let fileName = uploaded_file.get("fileName").unwrap().to_string();
+    // //GenericArray's docs are here 57 and it implements std::fmt::UpperHex and std::fmt::LowerHex
+    // let digest = format!("{:x}",md5::compute(&request));
+    // println!("{:?}",&saved_md5);
+    // println!("{:?}",&digest);
+    // // if &saved_md5 != &digest{
+    // //     return HttpResponse::BadRequest().body("Body isnt equal to file metadata md5")
+    // // }
+    // let data = HashMap::from([("fileName",fileName), ("saved_md5",saved_md5),("request", str::from_utf8(&request).unwrap().to_string() )]);
+    // push_upload(data);
+    // HttpResponse::Ok().body("File Uploaded")
+
 
 #[post("/upload_file")]
 async fn upload_file(request: web::Json<FileUpload>) -> impl Responder {
