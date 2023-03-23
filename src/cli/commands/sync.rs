@@ -7,9 +7,9 @@ use image;
 use std::fs::{File, create_dir_all};
 use std::io::prelude::*;
 use encoding_rs::{Encoding, UTF_16LE};
+use reqwest::blocking::Client;
 
 
-use std::io::prelude::*;
 
 use image::{ColorType, GenericImageView, ImageFormat};
 #[derive(Default)]
@@ -130,7 +130,26 @@ This function uses the encoding_rs crate to detect the encoding of a file. It ta
 You can use this function to detect the encoding of any file by passing in the file path as an argument.
 
 
+Yes, there are more robust ways to determine if a file is an image or not without relying solely on the file extension. One way is to look at the file signature or "magic number" of the file, which is a sequence of bytes at the beginning of the file that identifies its type. For example, the magic number for a JPEG file is 0xFFD8FF.
 
+You can use the magic crate in Rust to determine the file type using the magic number. Here is an example:
+
+rust
+Copy code
+use magic::flags::{MIME_TYPE, MIME_ENCODING};
+use magic::{Cookie, CookieFlags};
+
+fn is_image(file_path: &str) -> bool {
+    let cookie_flags = CookieFlags::MIME_TYPE | CookieFlags::MIME_ENCODING;
+    let cookie = Cookie::open(cookie_flags).unwrap();
+    let mime_type = cookie
+        .get_mime_type(file_path)
+        .unwrap_or("application/octet-stream".to_string());
+    mime_type.starts_with("image/")
+}
+This code uses the magic::Cookie struct to open a new magic cookie with the MIME_TYPE and MIME_ENCODING flags set. The get_mime_type method of the cookie is then used to get the MIME type of the file, which is checked to see if it starts with the "image/" prefix. If it does, then the file is an image.
+
+Note that the magic crate requires the installation of the libmagic library on your system.
 
 
  */
@@ -155,24 +174,23 @@ impl CLICommand for sync_cmd {
                         let file_name = entry.file_name();
                         let file_path = entry.path();
                         let file_meta = entry.metadata().unwrap();
-                        // let file_bytes = read(&file_path).unwrap();
-                        // let file_bytes = image::open(&file_path).unwrap();
-                        // let mut input_file = File::open(&file_path).expect("File not found");
                         let input_image = image::open(&file_path).unwrap();
-                        // let file_size = input_file.metadata().map(|m| m.len()).unwrap_or(0);
-                        // let mut file_data = vec![0; file_size as usize];
-                        // input_file.read_exact(&mut file_data).expect("Failed to read file");
-                        
+                        let formater = image::ImageFormat::from_path(&file_path).unwrap();
+                        println!("Status: {:?}", &input_image.as_bytes());
                         let (width, height) =input_image.dimensions();
                         let mut output_path = "/Users/arvidbushati/Desktop/Projects/Jarvis/here.jpg";
-                        println!("{:?}",Encoding::for_bom(&contents));
+                        let client = Client::new();
+                        let post = client.post("http://127.0.0.1:8080/upload_file_data/adfasf")
+                        .body(input_image.clone().into_bytes())
+                        .send().unwrap();
+                        println!("Status: {}", post.status());
                         image::save_buffer_with_format(
                             &mut output_path,
-                            &input_image.to_bytes(),
+                            &input_image.into_bytes(),
                             width,
                             height,
                             ColorType::Rgb8,
-                            ImageFormat::Jpeg,
+                            formater,
                         ).unwrap();
                         
 
@@ -181,7 +199,7 @@ impl CLICommand for sync_cmd {
                     
                         println!("Successfully created file at {}", output_path);
 
-                        println!("{:?},{:?},{:?}, {:?}",file_name,&file_path,file_meta, &input_image);
+                        // println!("{:?},{:?},{:?}, {:?}",file_name,&file_path,file_meta, formater);
         
                     }
                 }

@@ -1,4 +1,4 @@
-use bytes::Bytes;
+use bytes::{Bytes, Buf};
 use std::io::Read;
 use std::{fs::OpenOptions, io::Write};
 use actix_multipart::Multipart;
@@ -71,6 +71,7 @@ fn push_upload(data:  HashMap<&str,String>) -> String {
 
 #[post("/upload_file_data/{id}")]
 async fn upload_file_data(request: web::Bytes,tid: web::Path<(String,)>) -> impl Responder {
+    println!("{:?}",&request.to_vec());
     let  uploaded_file = get_upload_file_data(&tid.0);
     let saved_md5 = uploaded_file.get("md5").unwrap().to_string();
     let fileName = uploaded_file.get("fileName").unwrap().to_string();
@@ -104,6 +105,7 @@ async fn main() -> std::io::Result<()> {
     // tcpconnect();
     HttpServer::new(|| {
         App::new()
+            .app_data(web::PayloadConfig::new(1 << 25))
             .service(hello)
             .service(echo)
             .service(upload_file)
