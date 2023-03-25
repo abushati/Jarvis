@@ -1,0 +1,4 @@
+trait syncer {
+    destination
+
+}

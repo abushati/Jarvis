@@ -12,7 +12,7 @@ use reqwest::blocking::Client;
 
 
 use image::{ColorType, GenericImageView, ImageFormat};
-#[derive(Default)]
+
 
 /*why are the bytes returned from image open different then file read
 
@@ -155,6 +155,24 @@ Note that the magic crate requires the installation of the libmagic library on y
  */
 
 //Todo: add enum for type
+
+struct image_syncer {
+    destination: String,
+}
+
+trait syncer {
+    fn sync(&self, bytes:Vec<u8> ) {
+        let client = Client::new();
+        let post = client.post("http://127.0.0.1:8080/upload_file_data/adfasf")
+        .body(bytes)
+        .send().unwrap();
+        println!("Status: {}", post.status());
+    }
+}
+impl syncer for image_syncer {}
+
+
+#[derive(Default)]
 pub struct sync_cmd {
     type_arg: String,
     path: String
@@ -167,6 +185,7 @@ impl CLICommand for sync_cmd {
         if ["d","directory"].contains(&self.type_arg.as_str()) {
             let path = path::Path::new(&self.path);
             let i = read_dir(path);
+            let syncer = image_syncer{destination:"test".to_string()};
             match i {
                 Ok(..) => {
                     for s in i.unwrap() {
@@ -180,23 +199,8 @@ impl CLICommand for sync_cmd {
                         let (width, height) =input_image.dimensions();
                         println!("Status: {},{}",width,height);
                         let mut output_path = "/Users/arvidbushati/Desktop/Projects/Jarvis/here.jpg";
-                        let client = Client::new();
-                        let post = client.post("http://127.0.0.1:8080/upload_file_data/adfasf")
-                        .body(input_image.clone().into_bytes())
-                        .send().unwrap();
-                        println!("Status: {}", post.status());
-                        // image::save_buffer_with_format(
-                        //     &mut output_path,
-                        //     &input_image.into_bytes(),
-                        //     width,
-                        //     height,
-                        //     ColorType::Rgb8,
-                        //     formater,
-                        // ).unwrap();
+                        syncer.sync(input_image.clone().into_bytes());
                         
-
-                        // let mut output_file = OpenOptions::new().write(true).truncate(true).create(true).open(output_path).expect("Failed to create output file");
-                        // output_file.write_all(&string.as_bytes()).expect("Failed to write output file");
                     
                         println!("Successfully created file at {}", output_path);
 
