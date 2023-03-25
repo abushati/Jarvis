@@ -163,15 +163,32 @@ struct image_syncer {
 }
 
 trait syncer {
-    fn sync(&self, bytes:Vec<u8> ) {
+    fn upload_file(&self, bytes:Vec<u8> ) {
+        println!("In default function");
         let client = Client::new();
         let post = client.post("http://127.0.0.1:8080/upload_file_data/adfasf")
         .body(bytes)
         .send().unwrap();
         println!("Status: {}", post.status());
+        return
+    }
+
+    fn sync_file(&self, path: path::PathBuf) -> bool;
+
+}
+
+impl syncer for image_syncer {
+    fn upload_file(&self, bytes:Vec<u8> ) {
+        println!("In my upload function");
+        syncer::upload_file(self, bytes);
+        return
+    }
+
+    fn sync_file(&self, path:path::PathBuf) -> bool {
+
+        true
     }
 }
-impl syncer for image_syncer {}
 
 
 #[derive(Default)]
@@ -201,7 +218,7 @@ impl CLICommand for sync_cmd {
                         let (width, height) =input_image.dimensions();
                         println!("Status: {},{}",width,height);
                         let mut output_path = "/Users/arvidbushati/Desktop/Projects/Jarvis/here.jpg";
-                        syncer.sync(input_image.clone().into_bytes());
+                        syncer.upload_file(input_image.clone().into_bytes());
                         
                         println!("Successfully created file at {}", output_path);
                         let value = json!({
@@ -214,7 +231,8 @@ impl CLICommand for sync_cmd {
                                 ]
                             }
                         });
-                        println!("{:?}", value.to_string())
+                        println!("{:?}", value.to_string());
+                        break
                     }
                 }
                 Err(e) => {println!("what is u doing? {:?}",e)}
