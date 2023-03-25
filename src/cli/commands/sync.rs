@@ -8,6 +8,8 @@ use std::fs::{File, create_dir_all};
 use std::io::prelude::*;
 use encoding_rs::{Encoding, UTF_16LE};
 use reqwest::blocking::Client;
+use serde_json::json;
+
 
 
 
@@ -201,11 +203,18 @@ impl CLICommand for sync_cmd {
                         let mut output_path = "/Users/arvidbushati/Desktop/Projects/Jarvis/here.jpg";
                         syncer.sync(input_image.clone().into_bytes());
                         
-                    
                         println!("Successfully created file at {}", output_path);
-
-                        // println!("{:?},{:?},{:?}, {:?}",file_name,&file_path,file_meta, formater);
-        
+                        let value = json!({
+                            "code": 200,
+                            "success": true,
+                            "payload": {
+                                "features": [
+                                    "serde",
+                                    "json"
+                                ]
+                            }
+                        });
+                        println!("{:?}", value.to_string())
                     }
                 }
                 Err(e) => {println!("what is u doing? {:?}",e)}
