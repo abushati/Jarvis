@@ -1,5 +1,6 @@
 use super::utils::{CLICommand,CliAction};
 use std::fs::{read_dir,read,OpenOptions,write};
+use std::fs;
 use std::io::Write;
 use std::path;
 use std::str::from_utf8;
@@ -163,11 +164,11 @@ struct image_syncer {
 }
 
 trait syncer {
-    fn upload_file(&self, bytes:Vec<u8> ) {
+    fn upload_file(&self, bytes:&Vec<u8> ) {
         println!("In default function");
         let client = Client::new();
         let post = client.post("http://127.0.0.1:8080/upload_file_data/adfasf")
-        .body(bytes)
+        .body(bytes.to_owned())
         .send().unwrap();
         println!("Status: {}", post.status());
         return
@@ -178,11 +179,11 @@ trait syncer {
 }
 
 impl syncer for image_syncer {
-    fn upload_file(&self, bytes:Vec<u8> ) {
-        println!("In my upload function");
-        syncer::upload_file(self, bytes);
-        return
-    }
+    // fn upload_file(&self, bytes:&Vec<u8> ) {
+    //     println!("In my upload function");
+    //     syncer::upload_file(self, bytes);
+    //     return
+    // }
 
     fn sync_file(&self, path:path::PathBuf) -> bool {
 
@@ -212,13 +213,18 @@ impl CLICommand for sync_cmd {
                         let file_name = entry.file_name();
                         let file_path = entry.path();
                         let file_meta = entry.metadata().unwrap();
-                        let input_image = image::open(&file_path).unwrap();
-                        let formater = image::ImageFormat::from_path(&file_path).unwrap();
-                        println!("Status: {:?}", &input_image.as_bytes());
-                        let (width, height) =input_image.dimensions();
-                        println!("Status: {},{}",width,height);
+                        // let input_image = image::open(&file_path).unwrap();
+                        // let formater = image::ImageFormat::from_path(&file_path).unwrap();
+                        // println!("Status: {:?}", &input_image.as_bytes());
+                        // let (width, height) =input_image.dimensions();
+                        // println!("Status: {},{}",width,height);
                         let mut output_path = "/Users/arvidbushati/Desktop/Projects/Jarvis/here.jpg";
-                        syncer.upload_file(input_image.clone().into_bytes());
+                        //syncer.upload_file(&input_image.clone().into_bytes());
+                        let mut file = fs::File::open(&file_path).unwrap();
+                        let mut buf: Vec<u8> = vec![];
+                        file.read_to_end(& mut buf);
+                        fs::write(output_path, &buf);
+                        
                         
                         println!("Successfully created file at {}", output_path);
                         let value = json!({
@@ -232,7 +238,7 @@ impl CLICommand for sync_cmd {
                             }
                         });
                         println!("{:?}", value.to_string());
-                        break
+                        
                     }
                 }
                 Err(e) => {println!("what is u doing? {:?}",e)}
