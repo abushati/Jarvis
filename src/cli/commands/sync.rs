@@ -8,13 +8,8 @@ use image;
 use std::fs::{File, create_dir_all};
 use std::io::prelude::*;
 use encoding_rs::{Encoding, UTF_16LE};
-use reqwest::blocking::Client;
 use serde_json::json;
-
-
-
-
-use image::{ColorType, GenericImageView, ImageFormat};
+use crate::syner::syncer;
 
 
 /*why are the bytes returned from image open different then file read
@@ -159,38 +154,6 @@ Note that the magic crate requires the installation of the libmagic library on y
 
 //Todo: add enum for type
 
-struct image_syncer {
-    destination: String,
-}
-
-trait syncer {
-    fn upload_file(&self, bytes:&Vec<u8> ) {
-        println!("In default function");
-        let client = Client::new();
-        let post = client.post("http://127.0.0.1:8080/upload_file_data/adfasf")
-        .body(bytes.to_owned())
-        .send().unwrap();
-        println!("Status: {}", post.status());
-        return
-    }
-
-    fn sync_file(&self, path: path::PathBuf) -> bool;
-
-}
-
-impl syncer for image_syncer {
-    // fn upload_file(&self, bytes:&Vec<u8> ) {
-    //     println!("In my upload function");
-    //     syncer::upload_file(self, bytes);
-    //     return
-    // }
-
-    fn sync_file(&self, path:path::PathBuf) -> bool {
-
-        true
-    }
-}
-
 
 #[derive(Default)]
 pub struct sync_cmd {
@@ -203,46 +166,8 @@ impl CLICommand for sync_cmd {
         let e = format!("Hello from run of sync type {:?}, path: {:?}",&self.type_arg, &self.path);
         println!("{}",e);
         if ["d","directory"].contains(&self.type_arg.as_str()) {
-            let path = path::Path::new(&self.path);
-            let i = read_dir(path);
-            let syncer = image_syncer{destination:"test".to_string()};
-            match i {
-                Ok(..) => {
-                    for s in i.unwrap() {
-                        let entry = s.unwrap();
-                        let file_name = entry.file_name();
-                        let file_path = entry.path();
-                        let file_meta = entry.metadata().unwrap();
-                        // let input_image = image::open(&file_path).unwrap();
-                        // let formater = image::ImageFormat::from_path(&file_path).unwrap();
-                        // println!("Status: {:?}", &input_image.as_bytes());
-                        // let (width, height) =input_image.dimensions();
-                        // println!("Status: {},{}",width,height);
-                        let mut output_path = "/Users/arvidbushati/Desktop/Projects/Jarvis/here.jpg";
-                        //syncer.upload_file(&input_image.clone().into_bytes());
-                        let mut file = fs::File::open(&file_path).unwrap();
-                        let mut buf: Vec<u8> = vec![];
-                        file.read_to_end(& mut buf);
-                        fs::write(output_path, &buf);
-                        
-                        
-                        println!("Successfully created file at {}", output_path);
-                        let value = json!({
-                            "code": 200,
-                            "success": true,
-                            "payload": {
-                                "features": [
-                                    "serde",
-                                    "json"
-                                ]
-                            }
-                        });
-                        println!("{:?}", value.to_string());
-                        
-                    }
-                }
-                Err(e) => {println!("what is u doing? {:?}",e)}
-            }
+            let syncer = syncer{destination:"test".to_string()};
+            syncer.sync_directory(&self.path)
             
         }
         
