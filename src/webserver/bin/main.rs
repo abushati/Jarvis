@@ -80,9 +80,10 @@ async fn upload_file_data(request: web::Bytes,tid: web::Path<(String,)>) -> impl
     let digest = format!("{:x}",md5::compute(&request));
     println!("{:?}",&saved_md5);
     println!("{:?}",&digest);
-    // if &saved_md5 != &digest{
-    //     return HttpResponse::BadRequest().body("Body isnt equal to file metadata md5")
-    // }
+    if &saved_md5 != &digest{
+        return HttpResponse::BadRequest().body("Body isnt equal to file metadata md5")
+    }
+    println!("good md5");
     let data = HashMap::from([("fileName",fileName), ("saved_md5",saved_md5),("request", str::from_utf8(&request).unwrap().to_string() )]);
     push_upload(data);
     HttpResponse::Ok().body("File Uploaded")

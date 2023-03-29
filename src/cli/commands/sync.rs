@@ -1,14 +1,9 @@
 use super::utils::{CLICommand,CliAction};
 use std::fs::{read_dir,read,OpenOptions,write};
-use std::fs;
-use std::io::Write;
-use std::path;
-use std::str::from_utf8;
-use image;
 use std::fs::{File, create_dir_all};
 use std::io::prelude::*;
 use encoding_rs::{Encoding, UTF_16LE};
-use serde_json::json;
+
 use crate::syner::syncer;
 
 
