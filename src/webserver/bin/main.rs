@@ -1,8 +1,8 @@
 use bytes::{Bytes, Buf};
 use std::io::Read;
 use std::{fs::OpenOptions, io::Write};
-use actix_multipart::Multipart;
 use serde::Deserialize;
+use serde_json::json;
 use actix_web::{get, post, web, App,HttpRequest, HttpResponse, HttpServer, Responder};
 extern crate redis;
 use redis::Commands;
@@ -12,7 +12,6 @@ use uuid::Uuid;
 use md5;
 use std::str;
 use image;
-use image::ImageFormat::Jpeg;
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -67,6 +66,7 @@ fn push_upload(data:  HashMap<&str,String>) -> String {
 
     let d = serde_json::to_string(&data).unwrap();
     let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),d);
+    println!("Pushed to redis for diskmanager");
 
     "ok".to_string()
 }
@@ -84,7 +84,10 @@ async fn upload_file_data(request: web::Bytes,tid: web::Path<(String,)>) -> impl
         return HttpResponse::BadRequest().body("Body isnt equal to file metadata md5")
     }
     println!("good md5");
-    let data = HashMap::from([("fileName",fileName), ("saved_md5",saved_md5),("request", str::from_utf8(&request).unwrap().to_string() )]);
+    let byte_string = format!("{:?}",request.to_vec());
+    println!("{:?}", byte_string);
+
+    let data = HashMap::from([("fileName",fileName), ("saved_md5",saved_md5),("request", byte_string)]);
     push_upload(data);
     HttpResponse::Ok().body("File Uploaded")
 }
