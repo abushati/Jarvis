@@ -1,8 +1,7 @@
 use bytes::{Bytes, Buf};
 use std::io::Read;
 use std::{fs::OpenOptions, io::Write};
-use serde::Deserialize;
-use serde_json::json;
+use serde::{Serialize, Deserialize};
 use actix_web::{get, post, web, App,HttpRequest, HttpResponse, HttpServer, Responder};
 extern crate redis;
 use redis::Commands;
@@ -26,11 +25,11 @@ async fn echo(req_body: String) -> impl Responder {
 async fn manual_hello() -> impl Responder {
     HttpResponse::Ok().body("Hey there!")
 }
-
+#[derive(Serialize, Deserialize)]
 struct File {
     fileName: String,
-    md5: String,
-    fileData: [u8]
+    saved_md5:String,
+    request: Vec<u8>,
 }
 
 fn get_upload_file_data(id: &str) -> HashMap<String,String> {
@@ -60,14 +59,13 @@ fn set_upload_file(key: String, value: Vec<(&str,&String)>) -> redis::RedisResul
     Ok(())
 }
 
-fn push_upload(data:  HashMap<&str,String>) -> String {
+fn push_upload(data:  File) -> String {
     let client = redis::Client::open("redis://localhost:6379").unwrap();
     let mut con = client.get_connection().unwrap();
 
     let d = serde_json::to_string(&data).unwrap();
     let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),d);
     println!("Pushed to redis for diskmanager");
-
     "ok".to_string()
 }
 
@@ -84,10 +82,10 @@ async fn upload_file_data(request: web::Bytes,tid: web::Path<(String,)>) -> impl
         return HttpResponse::BadRequest().body("Body isnt equal to file metadata md5")
     }
     println!("good md5");
-    let byte_string = format!("{:?}",request.to_vec());
-    println!("{:?}", byte_string);
-
-    let data = HashMap::from([("fileName",fileName), ("saved_md5",saved_md5),("request", byte_string)]);
+    // let byte_string = format!("{:?}",request.to_vec());
+    // println!("{:?}", byte_string);
+    let data = File{fileName:fileName,saved_md5:saved_md5,request:request.to_vec()};
+    // let data:HashMap<&str, _> = HashMap::from([("fileName",fileName), ("saved_md5",saved_md5),("request", )]);
     push_upload(data);
     HttpResponse::Ok().body("File Uploaded")
 }
