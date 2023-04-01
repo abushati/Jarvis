@@ -32,28 +32,29 @@ struct DiskManager {
 }
 
 fn main()  {
-    let mut pool = DiskManagerPool::new(3);
+    let mut pool = DiskManagerPool::new(10);
     let client = redis::Client::open("redis://localhost:6379").unwrap();
     let mut con = client.get_connection().unwrap();
     let key = "upload_queue";
+
     loop {
         
         let data:Result<String,RedisError> = con.lpop(key,None);
         
         if data.is_err(){
             println!("Nothing in queue, sleeping");
+            &pool.clear_threads();
             thread::sleep(Duration::from_secs(4));
             continue;
         }
 
         let data = data.unwrap();
-        let to_clear = &pool.clear();
-        &pool.delete(to_clear.to_owned());
+        &pool.clear_threads();
         let running = &pool.write_file(&data.clone());
 
         if running.to_owned() == false {
             println!("Reenqueueing");
-            let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),data.clone());
+            let _:redis::RedisResult<()> = con.lpush(key.to_string(),data.clone());
         }
 
     }
@@ -68,6 +69,10 @@ impl DiskManagerPool {
         DiskManagerPool { managers: manangers, max_number_managers: max_number_managers, threads: HashMap::new() }
     }
 
+    fn clear_threads (&mut self) {
+        let to_clear = &self.clear();
+        &self.delete(to_clear.to_owned());
+    }
     fn clear(&mut self) -> Vec<u8> {
         let mut to_delete = vec![];
         for (id, thread) in &mut self.threads {
@@ -99,24 +104,15 @@ impl DiskManagerPool {
                 let mut m = manager.clone();
                 manager.state = ManagerStates::WORKING;
                 let t = thread::spawn(move || {
-                    // manager.state = ManagerStates::WORKING;
                     m.write_file(d);
-                    thread::sleep(Duration::from_secs(4));
-                    // manager.state = ManagerStates::FREE;
+
                 });
                 self.threads.insert(manager.id, t);
-                // let a = t.is_finished();
-                
-                // manager.state = ManagerStates::FREE;
                 return true
-                // i.state = ManagerStates::WORKING.
-                
-
             }
         }
         println!("No free workers");
         return false;
-
     }
     
 }
@@ -139,6 +135,6 @@ impl DiskManager {
             .create(true)
             .open(d.fileName).unwrap();
         let _ = file.write_all(&file_bytes).unwrap();
-        thread::sleep(Duration::from_secs(10));
+        thread::sleep(Duration::from_secs(1));
     }
 }
