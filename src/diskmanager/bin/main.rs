@@ -38,18 +38,16 @@ fn main()  {
     let key = "upload_queue";
 
     loop {
-        
         let data:Result<String,RedisError> = con.lpop(key,None);
-        
         if data.is_err(){
             println!("Nothing in queue, sleeping");
-            &pool.clear_threads();
+            let _ = &pool.clear_threads();
             thread::sleep(Duration::from_secs(4));
             continue;
         }
 
         let data = data.unwrap();
-        &pool.clear_threads();
+        let _ = &pool.clear_threads();
         let running = &pool.write_file(&data.clone());
 
         if running.to_owned() == false {
