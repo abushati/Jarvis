@@ -7,6 +7,24 @@ use serde::{Serialize, Deserialize};
 use thread::JoinHandle;
 use std::collections::HashMap;
 // use std::sync::mpsc;
+use std::str::FromStr;
+enum ManagerActions {
+    WRITE_FILE,
+    READ_FILE,
+    UPDATE_FILE,
+    DELETE_FILE
+}
+
+impl ManagerActions {
+    fn get_action(s: &str) -> fn(&mut DiskManager, std::string::String)  {
+        match s.to_uppercase().as_str() {
+            "WRITE_FILE"=> return DiskManager::write_file,
+            _ => return DiskManager::write_file
+        }
+
+    }
+}
+
 
 #[derive(Serialize, Deserialize)]
 struct File {
@@ -41,20 +59,19 @@ fn main()  {
         let data:Result<String,RedisError> = con.lpop(key,None);
         if data.is_err(){
             println!("Nothing in queue, sleeping");
-            let _ = &pool.clear_threads();
+            let _ = &pool.free_managers();
             thread::sleep(Duration::from_secs(4));
             continue;
         }
 
         let data = data.unwrap();
-        let _ = &pool.clear_threads();
-        let running = &pool.write_file(&data.clone());
+        let _ = &pool.free_managers();
+        let running = &pool.perform_action("WRITE_FILE".to_string(),&data.clone());
 
         if running.to_owned() == false {
             println!("Reenqueueing");
             let _:redis::RedisResult<()> = con.lpush(key.to_string(),data.clone());
         }
-
     }
 }
 
@@ -67,11 +84,8 @@ impl DiskManagerPool {
         DiskManagerPool { managers: manangers, max_number_managers: max_number_managers, threads: HashMap::new() }
     }
 
-    fn clear_threads (&mut self) {
-        let to_clear = &self.clear();
-        &self.delete(to_clear.to_owned());
-    }
-    fn clear(&mut self) -> Vec<u8> {
+
+    fn free_managers(&mut self){
         let mut to_delete = vec![];
         for (id, thread) in &mut self.threads {
             if thread.is_finished(){
@@ -84,26 +98,21 @@ impl DiskManagerPool {
                 to_delete.push(id.clone());
             }
         }
-        to_delete
-    }
-    
-    fn delete (&mut self, vec: Vec<u8>){
-        for i in vec {
+        for i in to_delete {
             self.threads.remove(&i);
         }
     }
-
-    fn write_file(&mut self, data: &String) -> bool {
-
+    
+    fn perform_action(&mut self, action: String, data: &String) -> bool {
         for mut manager in &mut self.managers{
             if manager.state == ManagerStates::FREE {
                 let d = data.clone();
-
                 let mut m = manager.clone();
+                let action_function = ManagerActions::get_action("write_file");
+                
                 manager.state = ManagerStates::WORKING;
                 let t = thread::spawn(move || {
-                    m.write_file(d);
-
+                    action_function(&mut m, d);
                 });
                 self.threads.insert(manager.id, t);
                 return true
@@ -111,8 +120,7 @@ impl DiskManagerPool {
         }
         println!("No free workers");
         return false;
-    }
-    
+    }    
 }
 
 impl DiskManager {
