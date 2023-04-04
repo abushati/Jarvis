@@ -1,11 +1,15 @@
+use std::fs;
 use std::{fs::OpenOptions, io::Write};
 extern crate redis;
+use chrono::DateTime;
 use redis::RedisError;
 use redis::Commands;
 use std::{thread, time::Duration};
 use serde::{Serialize, Deserialize};
 use thread::JoinHandle;
 use std::collections::HashMap;
+use uuid::Uuid;
+use chrono::prelude::*;
 // use std::sync::mpsc;
 use std::str::FromStr;
 enum ManagerActions {
@@ -130,15 +134,41 @@ impl DiskManagerPool {
     }    
 }
 
+#[derive(Debug)]
+struct MetaData {
+    file_id: String,
+    file_key: String,
+    insert_time: String,
+    // file_type: String
+}
 
+impl MetaData {
+    fn save(self) {
+        println!("{:?}",self)
+    }
+}
 impl DiskManager {
     fn new (id: u8) -> Self {
         DiskManager { id: id, state: ManagerStates::FREE}
     }
 
+    fn create_metadata(&self, data: &File) -> String {
+        //Check if key == file_path exist
+        let file_id = Uuid::new_v4();
+        let string_file_id = file_id.to_string();
+        let file_key = &data.fileName;
+        let insert_time = Utc::now().to_string();
+        let md = MetaData{file_id:string_file_id.clone(),file_key:file_key.clone(),insert_time:insert_time};
+        md.save();
+
+        string_file_id
+    }
+
     fn write_file(&mut self, data: File) {
+
         println!("Working from {:?}",&self.id);
         let d = data;
+        let file_id = self.create_metadata(&d);
         
         // println!("{:?}",data);
         // let d = serde_json::from_str::<File>(&data).unwrap();
@@ -147,7 +177,7 @@ impl DiskManager {
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
-            .open(d.fileName).unwrap();
+            .open(file_id).unwrap();
         let _ = file.write_all(&file_bytes).unwrap();
         thread::sleep(Duration::from_secs(1));
     }
