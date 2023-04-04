@@ -1,4 +1,5 @@
 use std::fs;
+use std::ptr::copy_nonoverlapping;
 use std::{fs::OpenOptions, io::Write};
 extern crate redis;
 use chrono::DateTime;
@@ -134,7 +135,7 @@ impl DiskManagerPool {
     }    
 }
 
-#[derive(Debug)]
+#[derive(Debug,Serialize, Deserialize)]
 struct MetaData {
     file_id: String,
     file_key: String,
@@ -144,7 +145,31 @@ struct MetaData {
 
 impl MetaData {
     fn save(self) {
+        let connection = sqlite::open("jarvis.db").unwrap();
+        connection.execute(
+            "CREATE TABLE IF NOT EXISTS metadata (id String PRIMARY KEY, json_data TEXT NOT NULL)",
+        ).unwrap();
+        let json = serde_json::to_string(&self).unwrap();
+        let s = format!("INSERT INTO metadata (id, json_data) VALUES ({},{})",self.file_key,json);
+        connection.execute(
+            s,
+            
+        ).unwrap();
         println!("{:?}",self)
+    }
+    fn get_key_meta(self, id: String) {
+        let s = format!("Selet * from metadata where id = '{}' ",self.file_key);
+        let connection = sqlite::open("jarvis.db").unwrap();
+        for row in connection
+        .prepare(s)
+        .unwrap()
+        .into_iter()
+        .map(|row| row.unwrap()){
+            let e: i64 = row.read("json_data");
+            print!("{}",&e);
+            
+        }
+        // println!("{:?}",res)
     }
 }
 impl DiskManager {
@@ -153,6 +178,7 @@ impl DiskManager {
     }
 
     fn create_metadata(&self, data: &File) -> String {
+
         //Check if key == file_path exist
         let file_id = Uuid::new_v4();
         let string_file_id = file_id.to_string();
@@ -170,8 +196,6 @@ impl DiskManager {
         let d = data;
         let file_id = self.create_metadata(&d);
         
-        // println!("{:?}",data);
-        // let d = serde_json::from_str::<File>(&data).unwrap();
         println!("File Name {:?}",d.fileName);
         let file_bytes = d.request;
         let mut file = OpenOptions::new()
@@ -181,4 +205,13 @@ impl DiskManager {
         let _ = file.write_all(&file_bytes).unwrap();
         thread::sleep(Duration::from_secs(1));
     }
+
+    fn read_file(&mut self, file_key: String){
+        let connection = sqlite::open("jarvis.db").unwrap();
+        connection.execute(
+            "CREATE TABLE IF NOT EXISTS my_table (id INTEGER PRIMARY KEY, json_data TEXT NOT NULL)",
+        ).unwrap();
+        connection.execute()
+    }
+
 }
