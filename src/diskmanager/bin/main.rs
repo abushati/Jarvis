@@ -16,7 +16,7 @@ enum ManagerActions {
 }
 
 impl ManagerActions {
-    fn get_action(s: &str) -> fn(&mut DiskManager, std::string::String)  {
+    fn get_action(s: &str) -> fn(&mut DiskManager, File)  {
         match s.to_uppercase().as_str() {
             "WRITE_FILE"=> return DiskManager::write_file,
             _ => return DiskManager::write_file
@@ -24,7 +24,11 @@ impl ManagerActions {
 
     }
 }
-
+#[derive(Serialize, Deserialize)]
+struct ManagerActionsEntry {
+    actionType: String,
+    fileData: File
+}
 
 #[derive(Serialize, Deserialize)]
 struct File {
@@ -40,7 +44,6 @@ enum ManagerStates {
 // #[derive(Clone)]
 struct DiskManagerPool {
     managers: Vec<DiskManager>,
-    max_number_managers: u8,
     threads: HashMap<u8,JoinHandle<()>>
 }
 #[derive(Clone)]
@@ -63,10 +66,14 @@ fn main()  {
             thread::sleep(Duration::from_secs(4));
             continue;
         }
+        let _ = &pool.free_managers();
+
 
         let data = data.unwrap();
-        let _ = &pool.free_managers();
-        let running = &pool.perform_action("WRITE_FILE".to_string(),&data.clone());
+        let entry = serde_json::from_str::<ManagerActionsEntry>(&data).unwrap();
+        let file_data = entry.fileData;
+
+        let running = &pool.perform_action(entry.actionType.to_string(),file_data);
 
         if running.to_owned() == false {
             println!("Reenqueueing");
@@ -81,7 +88,7 @@ impl DiskManagerPool {
         for i in 1..=max_number_managers{
             manangers.push(DiskManager::new(i))
         }
-        DiskManagerPool { managers: manangers, max_number_managers: max_number_managers, threads: HashMap::new() }
+        DiskManagerPool { managers: manangers, threads: HashMap::new() }
     }
 
 
@@ -103,12 +110,12 @@ impl DiskManagerPool {
         }
     }
     
-    fn perform_action(&mut self, action: String, data: &String) -> bool {
+    fn perform_action(&mut self, action: String, data: File) -> bool {
         for mut manager in &mut self.managers{
             if manager.state == ManagerStates::FREE {
-                let d = data.clone();
+                let d = data;
                 let mut m = manager.clone();
-                let action_function = ManagerActions::get_action("write_file");
+                let action_function = ManagerActions::get_action(&action);
                 
                 manager.state = ManagerStates::WORKING;
                 let t = thread::spawn(move || {
@@ -123,17 +130,18 @@ impl DiskManagerPool {
     }    
 }
 
+
 impl DiskManager {
     fn new (id: u8) -> Self {
         DiskManager { id: id, state: ManagerStates::FREE}
     }
 
-    fn write_file(&mut self, data: String) {
+    fn write_file(&mut self, data: File) {
         println!("Working from {:?}",&self.id);
-        let data = data;
+        let d = data;
         
         // println!("{:?}",data);
-        let d = serde_json::from_str::<File>(&data).unwrap();
+        // let d = serde_json::from_str::<File>(&data).unwrap();
         println!("File Name {:?}",d.fileName);
         let file_bytes = d.request;
         let mut file = OpenOptions::new()

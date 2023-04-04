@@ -25,6 +25,12 @@ async fn echo(req_body: String) -> impl Responder {
 async fn manual_hello() -> impl Responder {
     HttpResponse::Ok().body("Hey there!")
 }
+
+#[derive(Serialize, Deserialize)]
+struct ManagerActionsEntry {
+    actionType: String,
+    fileData: File
+}
 #[derive(Serialize, Deserialize)]
 struct File {
     fileName: String,
@@ -62,8 +68,12 @@ fn set_upload_file(key: String, value: Vec<(&str,&String)>) -> redis::RedisResul
 fn push_upload(data:  File) -> String {
     let client = redis::Client::open("redis://localhost:6379").unwrap();
     let mut con = client.get_connection().unwrap();
-
-    let d = serde_json::to_string(&data).unwrap();
+    let upload_entry = ManagerActionsEntry {
+                                                    actionType: "write_file".to_string(),
+                                                    fileData: data
+                                                };
+                                                
+    let d = serde_json::to_string(&upload_entry).unwrap();
     let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),d);
     println!("Pushed to redis for diskmanager");
     "ok".to_string()
