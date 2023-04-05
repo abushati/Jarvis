@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::Read;
 use std::ptr::copy_nonoverlapping;
 use std::{fs::OpenOptions, io::Write};
 extern crate redis;
@@ -11,8 +12,10 @@ use thread::JoinHandle;
 use std::collections::HashMap;
 use uuid::Uuid;
 use chrono::prelude::*;
-// use std::sync::mpsc;
-use std::str::FromStr;
+extern crate sqlite;
+use std::io::prelude::*;
+use jarvis::diskmanager::MetaData;
+
 enum ManagerActions {
     WRITE_FILE,
     READ_FILE,
@@ -21,9 +24,10 @@ enum ManagerActions {
 }
 
 impl ManagerActions {
-    fn get_action(s: &str) -> fn(&mut DiskManager, File)  {
+    fn get_action(s: &str) -> fn(&mut DiskManager, ManagerActionsEntry)  {
         match s.to_uppercase().as_str() {
             "WRITE_FILE"=> return DiskManager::write_file,
+            "READ_FILE" => return DiskManager::read_file,
             _ => return DiskManager::write_file
         }
 
@@ -32,7 +36,8 @@ impl ManagerActions {
 #[derive(Serialize, Deserialize)]
 struct ManagerActionsEntry {
     actionType: String,
-    fileData: File
+    fileKey: Option<String>, 
+    fileData: Option<File>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -42,7 +47,7 @@ struct File {
     request: Vec<u8>,
 }
 #[derive(PartialEq,Clone)]
-enum ManagerStates {
+pub enum ManagerStates {
     WORKING,
     FREE
 }
@@ -52,9 +57,9 @@ struct DiskManagerPool {
     threads: HashMap<u8,JoinHandle<()>>
 }
 #[derive(Clone)]
-struct DiskManager {
-    id: u8,
-    state: ManagerStates,
+pub struct DiskManager {
+    pub id: u8,
+    pub state: ManagerStates,
 }
 
 fn main()  {
@@ -76,9 +81,9 @@ fn main()  {
 
         let data = data.unwrap();
         let entry = serde_json::from_str::<ManagerActionsEntry>(&data).unwrap();
-        let file_data = entry.fileData;
+        // let file_data = entry.fileData;
 
-        let running = &pool.perform_action(entry.actionType.to_string(),file_data);
+        let running = &pool.perform_action(entry.actionType.to_string(),entry);
 
         if running.to_owned() == false {
             println!("Reenqueueing");
@@ -115,7 +120,7 @@ impl DiskManagerPool {
         }
     }
     
-    fn perform_action(&mut self, action: String, data: File) -> bool {
+    fn perform_action(&mut self, action: String, data: ManagerActionsEntry) -> bool {
         for mut manager in &mut self.managers{
             if manager.state == ManagerStates::FREE {
                 let d = data;
@@ -135,43 +140,15 @@ impl DiskManagerPool {
     }    
 }
 
-#[derive(Debug,Serialize, Deserialize)]
-struct MetaData {
-    file_id: String,
-    file_key: String,
-    insert_time: String,
-    // file_type: String
-}
+// #[derive(Debug,Serialize, Deserialize)]
+// struct MetaData {
+//     file_id: String,
+//     file_key: String,
+//     insert_time: String,
+//     // file_type: String
+// }
 
-impl MetaData {
-    fn save(self) {
-        let connection = sqlite::open("jarvis.db").unwrap();
-        connection.execute(
-            "CREATE TABLE IF NOT EXISTS metadata (id String PRIMARY KEY, json_data TEXT NOT NULL)",
-        ).unwrap();
-        let json = serde_json::to_string(&self).unwrap();
-        let s = format!("INSERT INTO metadata (id, json_data) VALUES ({},{})",self.file_key,json);
-        connection.execute(
-            s,
-            
-        ).unwrap();
-        println!("{:?}",self)
-    }
-    fn get_key_meta(self, id: String) {
-        let s = format!("Selet * from metadata where id = '{}' ",self.file_key);
-        let connection = sqlite::open("jarvis.db").unwrap();
-        for row in connection
-        .prepare(s)
-        .unwrap()
-        .into_iter()
-        .map(|row| row.unwrap()){
-            let e: i64 = row.read("json_data");
-            print!("{}",&e);
-            
-        }
-        // println!("{:?}",res)
-    }
-}
+
 impl DiskManager {
     fn new (id: u8) -> Self {
         DiskManager { id: id, state: ManagerStates::FREE}
@@ -190,10 +167,12 @@ impl DiskManager {
         string_file_id
     }
 
-    fn write_file(&mut self, data: File) {
-
+    fn write_file(&mut self, data: ManagerActionsEntry) {
+        if data.fileData.is_none() {
+            return 
+        }
+        let d = data.fileData.unwrap();
         println!("Working from {:?}",&self.id);
-        let d = data;
         let file_id = self.create_metadata(&d);
         
         println!("File Name {:?}",d.fileName);
@@ -206,12 +185,63 @@ impl DiskManager {
         thread::sleep(Duration::from_secs(1));
     }
 
-    fn read_file(&mut self, file_key: String){
+    fn read_file(&mut self, data: ManagerActionsEntry) {
+        if data.fileKey.is_none() {
+            return
+        }
+        let key = data.fileKey.unwrap();
+        let s = format!("Select * from metadata where id = '{}' ",key);
         let connection = sqlite::open("jarvis.db").unwrap();
-        connection.execute(
-            "CREATE TABLE IF NOT EXISTS my_table (id INTEGER PRIMARY KEY, json_data TEXT NOT NULL)",
-        ).unwrap();
-        connection.execute()
+        // let stmt = connection.prepare(s).unwrap();
+        for row in connection
+            .prepare(s.clone())
+            .unwrap()
+            .into_iter()
+            .map(|row| row.unwrap()){
+                let e: &str = row.read("json_data");
+                let h:MetaData = serde_json::from_str(e).unwrap();
+                println!("{:?}",&h);
+                let fil_id = h.file_id;
+                let mut file = OpenOptions::new()
+                .read(true)
+                .open(fil_id).unwrap();
+                
+                let mut buf = vec![];
+                file.read_to_end(&mut buf);
+                // return buf
+
+            
+        }
+        
+    }
+
+    pub fn read_file_web(&mut self, fileKey: String) -> Option<Vec<u8>> {
+    
+        let key = fileKey;
+        let s = format!("Select * from metadata where id = '{}' ",key);
+        let connection = sqlite::open("jarvis.db").unwrap();
+        // let stmt = connection.prepare(s).unwrap();
+        for row in connection
+            .prepare(s.clone())
+            .unwrap()
+            .into_iter()
+            .map(|row| row.unwrap()){
+                let e: &str = row.read("json_data");
+                let h:MetaData = serde_json::from_str(e).unwrap();
+                println!("{:?}",&h);
+                let fil_id = h.file_id;
+                let mut file = OpenOptions::new()
+                .read(true)
+                .open(fil_id).unwrap();
+                
+                let mut buf = vec![];
+                file.read_to_end(&mut buf);
+                return Some(buf)
+
+            
+        }
+        return None
+        
     }
 
 }

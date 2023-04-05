@@ -1,8 +1,9 @@
+use actix_web::error::HttpError;
 use bytes::{Bytes, Buf};
 use std::io::Read;
 use std::{fs::OpenOptions, io::Write};
 use serde::{Serialize, Deserialize};
-use actix_web::{get, post, web, App,HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App,HttpRequest, HttpResponse, HttpServer, Responder, http};
 extern crate redis;
 use redis::Commands;
 use redis::{Value, FromRedisValue,RedisError};
@@ -11,6 +12,8 @@ use uuid::Uuid;
 use md5;
 use std::str;
 use image;
+use jarvis::diskmanager::MetaData;
+use http::StatusCode;
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -29,7 +32,8 @@ async fn manual_hello() -> impl Responder {
 #[derive(Serialize, Deserialize)]
 struct ManagerActionsEntry {
     actionType: String,
-    fileData: File
+    fileKey: Option<String>, 
+    fileData: Option<File>
 }
 #[derive(Serialize, Deserialize)]
 struct File {
@@ -70,9 +74,10 @@ fn push_upload(data:  File) -> String {
     let mut con = client.get_connection().unwrap();
     let upload_entry = ManagerActionsEntry {
                                                     actionType: "write_file".to_string(),
-                                                    fileData: data
+                                                    fileData: Some(data),
+                                                    fileKey:None
                                                 };
-                                                
+
     let d = serde_json::to_string(&upload_entry).unwrap();
     let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),d);
     println!("Pushed to redis for diskmanager");
@@ -113,6 +118,49 @@ async fn upload_file(request: web::Json<FileUpload>) -> impl Responder {
     HttpResponse::Ok().body(s_id)
 }
 
+#[get("/read_file/{file_key}")]
+async fn read_file(request: web::Path<(String,)> ) -> HttpResponse {
+    // let client = redis::Client::open("redis://localhost:6379").unwrap();
+    // let mut con = client.get_connection().unwrap();
+    // let upload_entry = ManagerActionsEntry {
+    //                                                 actionType: "read_file".to_string(),
+    //                                                 fileData: None,
+    //                                                 fileKey: Some(request.clone().0)
+    //                                             };
+
+    // let d = serde_json::to_string(&upload_entry).unwrap();
+    // let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),d);
+    // println!("Pushed to redis for diskmanager");
+
+    let key = request.clone().0;
+    let s = format!("Select * from metadata where id = '{}' ",key);
+    let connection = sqlite::open("jarvis.db").unwrap();
+    // let stmt = connection.prepare(s).unwrap();
+    for row in connection
+        .prepare(s.clone())
+        .unwrap()
+        .into_iter()
+        .map(|row| row.unwrap()){
+            let e: &str = row.read("json_data");
+            let h:MetaData = serde_json::from_str(e).unwrap();
+            println!("{:?}",&h);
+            let fil_id = h.file_id;
+            let mut file = OpenOptions::new()
+            .read(true)
+            .open(fil_id).unwrap();
+            
+            let mut buf = vec![];
+            file.read_to_end(&mut buf);
+            
+            return HttpResponse::build(StatusCode::OK)
+            .content_type("application/octet-stream")
+            .header("Content-Disposition", format!("attachment; filename=\"{}\"",h.file_key))
+            .body(buf)
+
+        
+    }
+    HttpResponse::Ok().body("hi".to_string())
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -125,6 +173,7 @@ async fn main() -> std::io::Result<()> {
             .service(echo)
             .service(upload_file)
             .service(upload_file_data)
+            .service(read_file)
             .route("/hey", web::get().to(manual_hello))
     })
     .bind(("127.0.0.1", 8080))?
