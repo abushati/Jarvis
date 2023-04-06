@@ -64,6 +64,7 @@ pub struct DiskManager {
 
 fn main()  {
     let mut pool = DiskManagerPool::new(10);
+    #Todo: change this to be read from a configuration. ie env vars
     let client = redis::Client::open("redis://localhost:6379").unwrap();
     let mut con = client.get_connection().unwrap();
     let key = "upload_queue";
