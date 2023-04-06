@@ -1,4 +1,5 @@
-FROM ubuntu:latest
+FROM rust:latest
+
 
 # # Install dependencies (including the SQLite3 library)
 # RUN apt-get update && apt-get install -y \
@@ -9,7 +10,8 @@ FROM ubuntu:latest
 WORKDIR /usr/local/bin
 # Copy the Rust binary into the container
 # Copy all Rust binaries from the target directory
-COPY target/debug/* .
-
+COPY . .
+# COPY target/debug/server .
+# COPY target/debug/diskmanager .
 # Set the command to run when the container starts
-CMD ["./server"]
+CMD ["ls"]
