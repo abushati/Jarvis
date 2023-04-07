@@ -72,6 +72,7 @@ fn main()  {
     let key = "upload_queue";
 
     loop {
+        
         let data:Result<String,RedisError> = con.lpop(key,None);
         if data.is_err(){
             println!("Nothing in queue, sleeping");
