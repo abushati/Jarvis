@@ -1,6 +1,6 @@
-use actix_web::error::HttpError;
 use bytes::{Bytes, Buf};
 use std::io::Read;
+use std::process::Command;
 use std::{fs::OpenOptions, io::Write};
 use serde::{Serialize, Deserialize};
 use actix_web::{get, post, web, App ,HttpRequest, HttpResponse, HttpServer, Responder, http};
@@ -63,6 +63,7 @@ struct FileUpload {
 
 fn set_upload_file(key: String, value: Vec<(&str,&String)>) -> redis::RedisResult<()> {
     let redis = env::var("redis").unwrap();
+    println!("redis {}",redis);
     let redis_url = format!("redis://{}:6379",redis);
     let client = redis::Client::open(redis_url).unwrap();
     let mut con = client.get_connection()?;
@@ -169,6 +170,17 @@ async fn read_file(request: web::Path<(String,)> ) -> HttpResponse {
 async fn main() -> std::io::Result<()> {
     // server();
     // tcpconnect();
+    let output = Command::new("hostname")
+    .output()
+    .expect("failed to execute process");
+    println!("{:?}",String::from_utf8_lossy(&output.stdout));
+    
+    if String::from_utf8_lossy(&output.stdout) == "Arvids-MacBook-Pro.local\n" {
+        println!("here");
+        std::env::set_var("redis", "localhost");
+        println!("{:?}",std::env::var("redis").unwrap());
+    }
+
     HttpServer::new(|| {
         App::new()
             .app_data(web::PayloadConfig::new(1 << 25))
@@ -179,7 +191,7 @@ async fn main() -> std::io::Result<()> {
             .service(read_file)
             .route("/hey", web::get().to(manual_hello))
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(("127.0.0.1", 8080))?
     .run()
     .await
 }

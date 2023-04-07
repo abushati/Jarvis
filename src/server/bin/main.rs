@@ -21,7 +21,7 @@ fn main() {
     
     let diskmanager_child: std::process::Child;
     let webserver:std::process::Child;
-    if String::from_utf8_lossy(&output.stdout) != "Arvids-MacBook-Pro.local\\n" {
+    if String::from_utf8_lossy(&output.stdout) != "Arvids-MacBook-Pro.local\n" {
         webserver  = Command::new("./target/debug/webserver").spawn().unwrap();
         diskmanager_child = Command::new("./target/debug/diskmanager").spawn().unwrap();
         
