@@ -1,17 +1,28 @@
-FROM rust:latest
+FROM rust:1-alpine3.17
+
+ENV RUSTFLAGS="-C target-feature=-crt-static"
+
+RUN apk add --no-cache musl-dev
+RUN apk add --update openssl openssl-dev
 
 
-# # Install dependencies (including the SQLite3 library)
-# RUN apt-get update && apt-get install -y \
-#     sqlite3 \
-#     libsqlite3-dev
+WORKDIR /app
+COPY . /app
 
-# Create a new directory in the container
-WORKDIR /usr/local/bin
-# Copy the Rust binary into the container
-# Copy all Rust binaries from the target directory
-COPY . .
-# COPY target/debug/server .
-# COPY target/debug/diskmanager .
-# Set the command to run when the container starts
-CMD ["ls"]
+RUN cargo build 
+RUN strip target/debug/webserver
+RUN strip target/debug/server
+RUN strip target/debug/diskmanager
+
+FROM alpine:3.17
+
+RUN apk add --no-cache libgcc
+
+COPY --from=0 /app/target/debug/webserver .
+COPY --from=0 /app/target/debug/server .
+COPY --from=0 /app/target/debug/diskmanager .
+ENV redis=localhost
+# EXPOSE 8080
+
+# ENTRYPOINT ["./server"]
+# CMD ['ls']

@@ -15,6 +15,7 @@ use chrono::prelude::*;
 extern crate sqlite;
 use std::io::prelude::*;
 use jarvis::diskmanager::MetaData;
+use std::env;
 
 enum ManagerActions {
     WRITE_FILE,
@@ -64,7 +65,9 @@ pub struct DiskManager {
 
 fn main()  {
     let mut pool = DiskManagerPool::new(10);
-    let client = redis::Client::open("redis://localhost:6379").unwrap();
+    let redis = env::var("redis").unwrap();
+    let redis_url = format!("redis://{}:6379",redis);
+    let client = redis::Client::open(redis_url).unwrap();
     let mut con = client.get_connection().unwrap();
     let key = "upload_queue";
 

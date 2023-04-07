@@ -3,17 +3,16 @@ use bytes::{Bytes, Buf};
 use std::io::Read;
 use std::{fs::OpenOptions, io::Write};
 use serde::{Serialize, Deserialize};
-use actix_web::{get, post, web, App,HttpRequest, HttpResponse, HttpServer, Responder, http};
+use actix_web::{get, post, web, App ,HttpRequest, HttpResponse, HttpServer, Responder, http};
 extern crate redis;
 use redis::Commands;
-use redis::{Value, FromRedisValue,RedisError};
 use std::collections::HashMap;
 use uuid::Uuid;
 use md5;
 use std::str;
-use image;
 use jarvis::diskmanager::MetaData;
 use http::StatusCode;
+use std::env;
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -43,7 +42,9 @@ struct File {
 }
 
 fn get_upload_file_data(id: &str) -> HashMap<String,String> {
-    let client = redis::Client::open("redis://localhost:6379").unwrap();
+    let redis = env::var("redis").unwrap();
+    let redis_url = format!("redis://{}:6379",redis);
+    let client = redis::Client::open(redis_url).unwrap();
     let mut con = client.get_connection().unwrap();
     let key = format!("upload_{}",id);
     println!("{:?}", key);
@@ -61,8 +62,9 @@ struct FileUpload {
 }
 
 fn set_upload_file(key: String, value: Vec<(&str,&String)>) -> redis::RedisResult<()> {
-    //docker run -d --name redis-stack -p 6379:6379 -p 8001:8001 redis/redis-stack:latest
-    let client = redis::Client::open("redis://localhost:6379")?;
+    let redis = env::var("redis").unwrap();
+    let redis_url = format!("redis://{}:6379",redis);
+    let client = redis::Client::open(redis_url).unwrap();
     let mut con = client.get_connection()?;
     let _ : () = con.hset_multiple(&key,&value)?;
     let _ : () = con.expire(&key,12)?;
@@ -70,7 +72,9 @@ fn set_upload_file(key: String, value: Vec<(&str,&String)>) -> redis::RedisResul
 }
 
 fn push_upload(data:  File) -> String {
-    let client = redis::Client::open("redis://localhost:6379").unwrap();
+    let redis = env::var("redis").unwrap();
+    let redis_url = format!("redis://{}:6379",redis);
+    let client = redis::Client::open(redis_url).unwrap();
     let mut con = client.get_connection().unwrap();
     let upload_entry = ManagerActionsEntry {
                                                     actionType: "write_file".to_string(),
@@ -156,7 +160,6 @@ async fn read_file(request: web::Path<(String,)> ) -> HttpResponse {
             .content_type("application/octet-stream")
             .header("Content-Disposition", format!("attachment; filename=\"{}\"",h.file_key))
             .body(buf)
-
         
     }
     HttpResponse::Ok().body("hi".to_string())
@@ -176,7 +179,7 @@ async fn main() -> std::io::Result<()> {
             .service(read_file)
             .route("/hey", web::get().to(manual_hello))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }
