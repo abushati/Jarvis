@@ -95,9 +95,12 @@ async fn upload_file(request: web::Json<FileUploadData>) -> impl Responder {
 }
 
 #[get("/read_file/{file_key}")]
-async fn read_file(request: web::Path<(String,)> ) -> HttpResponse {
+async fn read_file(re: HttpRequest, request: web::Path<(String,)> ) -> HttpResponse {
+    let user_agent = re.headers().get("User-Agent").map(|value| value.to_str().unwrap_or("")).unwrap_or("");
+    println!("User-Agent: {:?}", user_agent);
     let key = request.clone().0;
-    let s = format!("Select * from metadata where public_file_path = '{}' ",key);
+    println!("Path {:?}",key);
+    let s = format!("Select * from metadata where id = '{}' ",key);
     let connection = sqlite::open("jarvis.db").unwrap();
     // let stmt = connection.prepare(s).unwrap();
     for row in connection

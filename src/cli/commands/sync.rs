@@ -172,7 +172,6 @@ impl CLICommand for sync_cmd {
             _ => {
                 println!("Bad sync type");
             }
-            
         }
     }
     
