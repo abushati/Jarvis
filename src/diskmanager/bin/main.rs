@@ -16,9 +16,10 @@ extern crate sqlite;
 use std::io::prelude::*;
 use jarvis::diskmanager::MetaData;
 use std::env;
+use std::process::Command;
 
 
-const file_directory: &str = "/usr/local/file_directory";
+const file_directory: &str = "/private/tmp/file_directory";
 enum ManagerActions {
     WRITE_FILE,
     READ_FILE,
@@ -68,6 +69,16 @@ pub struct DiskManager {
 
 fn main()  {
     let mut pool = DiskManagerPool::new(10);
+    let output = Command::new("hostname")
+    .output()
+    .expect("failed to execute process");
+    println!("{:?}",String::from_utf8_lossy(&output.stdout));
+    
+    if String::from_utf8_lossy(&output.stdout) == "Arvids-MacBook-Pro.local\n" {
+        println!("here");
+        std::env::set_var("redis", "localhost");
+        println!("{:?}",std::env::var("redis").unwrap());
+    }
     let redis = env::var("redis").unwrap();
     let redis_url = format!("redis://{}:6379",redis);
     let client = redis::Client::open(redis_url).unwrap();
