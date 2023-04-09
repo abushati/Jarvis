@@ -16,9 +16,11 @@ use std::io::prelude::*;
 use jarvis::diskmanager::{MetaData, ManagerActionsEntry};
 use std::env;
 use std::process::Command;
+use std::env::consts::OS;
+extern crate lazy_static;
 
+static file_directory: &str = "/private/tmp/file_directory";
 
-const file_directory: &str = "/private/tmp/file_directory";
 enum ManagerActions {
     WRITE_FILE,
     READ_FILE,
@@ -55,6 +57,9 @@ pub struct DiskManager {
 }
 
 fn main()  {
+    // set_file_dir();
+
+
     let mut pool = DiskManagerPool::new(10);
     let output = Command::new("hostname")
     .output()
