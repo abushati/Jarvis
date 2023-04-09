@@ -1,26 +1,29 @@
 use reqwest::blocking::Client;
 use std::collections::HashMap;
 use std::path::Path;
-use std::fs::{read_dir,File,write, DirEntry};
+use std::fs::File;
 use std::io::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize,Serialize};
 pub struct syncer {
     pub destination: String,
 }
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug,Deserialize,Serialize)]
 pub struct FileUploadData {
-    pub fileName: String,
-    pub md5: String,
-    pub file_key: String
+    pub file_name: String,
+    pub file_path: String,
+    pub file_md5: String,
+    pub user: String
 }
+
 impl FileUploadData {
     fn to_hashmap(&self) -> HashMap<&str, &str> {
         let mut map = HashMap::new();
-        map.insert("fileName", self.fileName.as_str());
-        map.insert("md5", self.md5.as_str());
-        map.insert("file_key", self.file_key.as_str());
-        map
+        map.insert("file_name", self.file_name.as_str());
+        map.insert("file_path", self.file_path.as_str());
+        map.insert("file_md5", self.file_md5.as_str());
+        map.insert("user", self.user.as_str());
+        return map
     }
 }
 
@@ -47,10 +50,9 @@ impl syncer {
     }
 
     pub fn _upload_file(&self, file: &Path ) {
-
-        println!("In default function");
         let file_name = file.file_name().unwrap();
         let file_name = file_name.to_str().unwrap().to_string();
+
         let file_path = file.as_os_str().to_str().unwrap().to_string();
         println!("path {:?}",file_path);
         // let mut output_path = format!("/Users/arvidbushati/Desktop/Projects/Jarvis/{}",file_name.to_str().unwrap());
@@ -59,13 +61,16 @@ impl syncer {
         file.read_to_end(& mut buf);
 
         let file_md5 = format!("{:x}",md5::compute(&buf));
-        let file_md5 = file_md5.as_str().to_string();
+        // let file_md5 = file_md5.as_str().to_string();
         let file_key = file_path.clone();
+        let user = "1".to_string();
+
         let file_meta_data = FileUploadData{
-            fileName:file_name,
-            md5:file_md5,
-            file_key:file_key
-    };
+            file_name: file_name,
+            file_path: file_path,
+            file_md5: file_md5,
+            user: user
+        };
 
         let file_id = self.send_file_meta(file_meta_data);
         self.send_file_bytes(file_id, &buf);
@@ -84,7 +89,7 @@ impl syncer {
 
     pub fn sync_directory(&self, directory: &String) {
         let path = Path::new(&directory);
-        let i = read_dir(path);
+        let i = path.read_dir();
         match i {
             Ok(a) => {
                 for s in a {

@@ -1,9 +1,8 @@
-use std::fs;
 use std::io::Read;
-use std::ptr::copy_nonoverlapping;
+
 use std::{fs::OpenOptions, io::Write};
 extern crate redis;
-use chrono::DateTime;
+use jarvis::syner::FileUploadData;
 use redis::RedisError;
 use redis::Commands;
 use std::{thread, time::Duration};
@@ -14,7 +13,7 @@ use uuid::Uuid;
 use chrono::prelude::*;
 extern crate sqlite;
 use std::io::prelude::*;
-use jarvis::diskmanager::MetaData;
+use jarvis::diskmanager::{MetaData, ManagerActionsEntry};
 use std::env;
 use std::process::Command;
 
@@ -38,19 +37,7 @@ impl ManagerActions {
 
     }
 }
-#[derive(Serialize, Deserialize)]
-struct ManagerActionsEntry {
-    actionType: String,
-    fileKey: Option<String>, 
-    fileData: Option<File>
-}
 
-#[derive(Serialize, Deserialize)]
-struct File {
-    fileName: String,
-    saved_md5:String,
-    request: Vec<u8>,
-}
 #[derive(PartialEq,Clone)]
 pub enum ManagerStates {
     WORKING,
@@ -167,23 +154,29 @@ impl DiskManager {
         DiskManager { id: id, state: ManagerStates::FREE}
     }
 
-    fn create_metadata(&self, data: &File) -> String {
+    fn create_metadata(&self, data: &FileUploadData) -> MetaData {
+        
         //Check if key == file_path exist
-        let file_id = Uuid::new_v4();
-        let string_file_id = file_id.to_string();
-        let file_key = &data.fileName;
+        let _internal_file_id = Uuid::new_v4();
+        let string_internal_file_id = _internal_file_id.to_string();
+        
         let insert_time = Utc::now().to_string();
-        let md = MetaData{file_id:string_file_id.clone(),file_key:file_key.clone(),insert_time:insert_time};
-        md.save();
 
-        string_file_id
+        let entry_path = format!("{}/{}",file_directory, _internal_file_id);
+        let mut md = MetaData{
+            file_name: data.file_name.clone(),
+            public_file_path: data.file_path.clone(),
+            _internal_file_id: string_internal_file_id,
+            _internal_file_path: entry_path,
+            insert_time: insert_time.clone(),
+            update_time: insert_time.clone(),
+            user: None
+        };
+        let _ = &md.save();
+        return md
     }
 
     fn delete_file(&mut self, data: ManagerActionsEntry) {
-        let fileKey = data.fileKey;
-        if fileKey.is_none() {
-            print!("Invalid fileKey")
-        }
 
     }
 
@@ -191,51 +184,25 @@ impl DiskManager {
         if data.fileData.is_none() {
             return 
         }
-        let d = data.fileData.unwrap();
-        println!("Working from {:?}",&self.id);
-        let file_id = self.create_metadata(&d);
+        let file_bytes = data.file_bytes;
         
-        println!("File Name {:?}",d.fileName);
-        let file_bytes = d.request;
+        let meta_data = self.create_metadata(&data.fileData.unwrap());
+        println!("Created meta data for file {:?} on worker {:?}", meta_data.public_file_path,&self.id);
+
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
-            .open(file_id).unwrap();
+            .open(meta_data._internal_file_path).unwrap();
         let _ = file.write_all(&file_bytes).unwrap();
         thread::sleep(Duration::from_secs(1));
     }
 
     fn read_file(&mut self, data: ManagerActionsEntry) {
-        if data.fileKey.is_none() {
-            return
-        }
-        let key = data.fileKey.unwrap();
-        let s = format!("Select * from metadata where id = '{}' ",key);
-        let connection = sqlite::open("jarvis.db").unwrap();
-        // let stmt = connection.prepare(s).unwrap();
-        for row in connection
-            .prepare(s.clone())
-            .unwrap()
-            .into_iter()
-            .map(|row| row.unwrap()){
-                let e: &str = row.read("json_data");
-                let h:MetaData = serde_json::from_str(e).unwrap();
-                println!("{:?}",&h);
-                let fil_id = h.file_id;
-                let mut file = OpenOptions::new()
-                .read(true)
-                .open(fil_id).unwrap();
-                
-                let mut buf = vec![];
-                file.read_to_end(&mut buf);
-                // return buf
-        }
         
     }
 
-    pub fn read_file_web(&mut self, fileKey: String) -> Option<Vec<u8>> {
-        let key = fileKey;
-        let s = format!("Select * from metadata where id = '{}' ",key);
+    pub fn read_file_web(&mut self, public_file_key: String) -> Option<Vec<u8>> {
+        let s = format!("Select * from metadata where public_file_path = '{}' ",public_file_key);
         let connection = sqlite::open("jarvis.db").unwrap();
         // let stmt = connection.prepare(s).unwrap();
         for row in connection
@@ -246,10 +213,10 @@ impl DiskManager {
                 let e: &str = row.read("json_data");
                 let h:MetaData = serde_json::from_str(e).unwrap();
                 println!("{:?}",&h);
-                let fil_id = h.file_id;
+                let in_file_path = h._internal_file_path;
                 let mut file = OpenOptions::new()
                 .read(true)
-                .open(fil_id).unwrap();
+                .open(in_file_path).unwrap();
                 
                 let mut buf = vec![];
                 file.read_to_end(&mut buf);
