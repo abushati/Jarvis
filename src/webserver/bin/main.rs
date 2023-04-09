@@ -13,15 +13,11 @@ use std::str;
 use jarvis::diskmanager::MetaData;
 use http::StatusCode;
 use std::env;
+use jarvis::syner::FileUploadData;
 
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
-}
-
-#[get("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
 }
 
 async fn manual_hello() -> impl Responder {
@@ -53,12 +49,6 @@ fn get_upload_file_data(id: &str) -> HashMap<String,String> {
 
     
     return uploaded_file
-}
-#[derive(Debug,Deserialize)]
-struct FileUpload {
-    fileName: String,
-    md5: String,
-    // mimeType: String
 }
 
 fn set_upload_file(key: String, value: Vec<(&str,&String)>) -> redis::RedisResult<()> {
@@ -113,7 +103,7 @@ async fn upload_file_data(request: web::Bytes,tid: web::Path<(String,)>) -> impl
 
 
 #[post("/upload_file")]
-async fn upload_file(request: web::Json<FileUpload>) -> impl Responder {
+async fn upload_file(request: web::Json<FileUploadData>) -> impl Responder {
     let e = vec![("fileName",&request.fileName),("md5",&request.md5)];
     let id = Uuid::new_v4();
     let s_id = id.to_string();
@@ -185,7 +175,6 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::PayloadConfig::new(1 << 25))
             .service(hello)
-            .service(echo)
             .service(upload_file)
             .service(upload_file_data)
             .service(read_file)

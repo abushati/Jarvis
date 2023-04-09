@@ -17,6 +17,8 @@ use std::io::prelude::*;
 use jarvis::diskmanager::MetaData;
 use std::env;
 
+
+const file_directory: &str = "/usr/local/file_directory";
 enum ManagerActions {
     WRITE_FILE,
     READ_FILE,
@@ -29,6 +31,7 @@ impl ManagerActions {
         match s.to_uppercase().as_str() {
             "WRITE_FILE"=> return DiskManager::write_file,
             "READ_FILE" => return DiskManager::read_file,
+            "DELETE_FILE" => return DiskManager::delete_file,
             _ => return DiskManager::write_file
         }
 
@@ -82,7 +85,6 @@ fn main()  {
         }
         let _ = &pool.free_managers();
 
-
         let data = data.unwrap();
         let entry = serde_json::from_str::<ManagerActionsEntry>(&data).unwrap();
         // let file_data = entry.fileData;
@@ -101,6 +103,11 @@ impl DiskManagerPool {
         let mut manangers = vec![];
         for i in 1..=max_number_managers{
             manangers.push(DiskManager::new(i))
+        }
+        //Ensure that file directory exist
+        let exist = std::path::Path::exists(std::path::Path::new(file_directory));
+        if !exist {
+            std::fs::create_dir(file_directory).unwrap();
         }
         DiskManagerPool { managers: manangers, threads: HashMap::new() }
     }
@@ -144,22 +151,12 @@ impl DiskManagerPool {
     }    
 }
 
-// #[derive(Debug,Serialize, Deserialize)]
-// struct MetaData {
-//     file_id: String,
-//     file_key: String,
-//     insert_time: String,
-//     // file_type: String
-// }
-
-
 impl DiskManager {
     fn new (id: u8) -> Self {
         DiskManager { id: id, state: ManagerStates::FREE}
     }
 
     fn create_metadata(&self, data: &File) -> String {
-
         //Check if key == file_path exist
         let file_id = Uuid::new_v4();
         let string_file_id = file_id.to_string();
@@ -169,6 +166,14 @@ impl DiskManager {
         md.save();
 
         string_file_id
+    }
+
+    fn delete_file(&mut self, data: ManagerActionsEntry) {
+        let fileKey = data.fileKey;
+        if fileKey.is_none() {
+            print!("Invalid fileKey")
+        }
+
     }
 
     fn write_file(&mut self, data: ManagerActionsEntry) {
@@ -213,14 +218,11 @@ impl DiskManager {
                 let mut buf = vec![];
                 file.read_to_end(&mut buf);
                 // return buf
-
-            
         }
         
     }
 
     pub fn read_file_web(&mut self, fileKey: String) -> Option<Vec<u8>> {
-    
         let key = fileKey;
         let s = format!("Select * from metadata where id = '{}' ",key);
         let connection = sqlite::open("jarvis.db").unwrap();
@@ -241,8 +243,6 @@ impl DiskManager {
                 let mut buf = vec![];
                 file.read_to_end(&mut buf);
                 return Some(buf)
-
-            
         }
         return None
         

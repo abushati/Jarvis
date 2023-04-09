@@ -160,13 +160,22 @@ impl CLICommand for sync_cmd {
         // let i = vec!["d","ds"].contains(x);
         let e = format!("Hello from run of sync type {:?}, path: {:?}",&self.type_arg, &self.path);
         println!("{}",e);
-        if ["d","directory"].contains(&self.type_arg.as_str()) {
-            let syncer = syncer{destination:"test".to_string()};
-            syncer.sync_directory(&self.path)
+        match self.type_arg.as_str() {
+            "directory" | "d" => {
+                let syncer = syncer{destination:"test".to_string()};
+                syncer.sync_directory(&self.path)
+            },
+            "file" | "f" => {
+                let syncer = syncer{destination:"test".to_string()};
+                syncer.sync_file(&self.path)
+            },
+            _ => {
+                println!("Bad sync type");
+            }
             
         }
-        
     }
+    
     fn get_cmd (&self, args: Vec<String>) -> Result<CliAction,String> {
         let type_arg = args.get(2).unwrap().to_string();
         let path = args.get(3).unwrap().to_string();
