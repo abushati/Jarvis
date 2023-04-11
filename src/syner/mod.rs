@@ -97,7 +97,7 @@ impl syncer {
         return
     }
 
-    pub fn sync_file(&self, file_path: &String){
+    pub fn upload_file(&self, file_path: &String){
         let path = Path::new(file_path);
         if !path.is_file(){
             println!("Path provided isn't a file");
@@ -106,7 +106,7 @@ impl syncer {
         self._upload_file(path);
     }
 
-    pub fn sync_directory(&self, directory: &String) {
+    pub fn upload_directory(&self, directory: &String) {
         let path = Path::new(&directory);
         let i = path.read_dir();
         match i {
@@ -153,14 +153,13 @@ impl syncer {
 
         let file_bytes = res.bytes().unwrap().to_vec();
         
-        //Todo: dowload dir config
-        let mut binding = OpenOptions::new();
+        //Todo: add dowload dir config
         let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(format!("/Users/arvidbushati/Downloads/{}",name)).unwrap();
 
-        file.write_all(&file_bytes);
+        let _ = file.write_all(&file_bytes);
 
         
     }

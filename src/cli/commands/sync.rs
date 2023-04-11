@@ -186,10 +186,10 @@ impl CLICommand for sync_cmd {
             StorageCommands::Upload => {
                 match self.type_arg.as_str() {
                     "directory" | "d" => {
-                        syncer.sync_directory(&self.path)
+                        syncer.upload_directory(&self.path)
                     },
                     "file" | "f" => {
-                        syncer.sync_file(&self.path)
+                        syncer.upload_file(&self.path)
                     },
                     _ => {
                         println!("Bad sync type");
