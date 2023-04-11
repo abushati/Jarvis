@@ -5,7 +5,7 @@ use std::io::prelude::*;
 use encoding_rs::{Encoding, UTF_16LE};
 
 use crate::syner::syncer;
-
+use std::str::FromStr;
 
 /*why are the bytes returned from image open different then file read
 
@@ -148,37 +148,68 @@ Note that the magic crate requires the installation of the libmagic library on y
  */
 
 //Todo: add enum for type
+#[derive(Default)]
+enum StorageCommands {
+    Upload,
+    Delete,
+    Update,
+    #[default] Read,
+}
+impl FromStr for StorageCommands {
+    type Err = String;
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "upload" => Ok(StorageCommands::Upload),
+            "delete" => Ok(StorageCommands::Delete),
+            "update" => Ok(StorageCommands::Update),
+            "read" => Ok(StorageCommands::Read),
+            _ => Err("bad".to_string())
+        }
+    }
 
+    
+}
 
 #[derive(Default)]
 pub struct sync_cmd {
+    storage_action: StorageCommands,
     type_arg: String,
     path: String
 }
 impl CLICommand for sync_cmd {
     fn run(&self) {
-        // let i = vec!["d","ds"].contains(x);
         let e = format!("Hello from run of sync type {:?}, path: {:?}",&self.type_arg, &self.path);
         println!("{}",e);
-        match self.type_arg.as_str() {
-            "directory" | "d" => {
-                let syncer = syncer{destination:"test".to_string()};
-                syncer.sync_directory(&self.path)
-            },
-            "file" | "f" => {
-                let syncer = syncer{destination:"test".to_string()};
-                syncer.sync_file(&self.path)
+        match self.storage_action {
+            StorageCommands::Upload => {
+                match self.type_arg.as_str() {
+                    "directory" | "d" => {
+                        let syncer = syncer{destination:"test".to_string()};
+                        syncer.sync_directory(&self.path)
+                    },
+                    "file" | "f" => {
+                        let syncer = syncer{destination:"test".to_string()};
+                        syncer.sync_file(&self.path)
+                    },
+                    _ => {
+                        println!("Bad sync type");
+                    }
+                }
             },
             _ => {
-                println!("Bad sync type");
+                unimplemented!();
             }
         }
     }
     
     fn get_cmd (&self, args: Vec<String>) -> Result<CliAction,String> {
-        let type_arg = args.get(2).unwrap().to_string();
-        let path = args.get(3).unwrap().to_string();
-        let cmd = sync_cmd{type_arg:type_arg,
+
+        let storage_action = args.get(2).unwrap();
+        let type_arg = args.get(3).unwrap().to_string();
+        let path = args.get(4).unwrap().to_string();
+        let cmd = sync_cmd{storage_action: StorageCommands::from_str(storage_action).unwrap(),
+                                    type_arg:type_arg,
                                     path:path};
         Ok(CliAction{cmd:Box::new(cmd)})
     

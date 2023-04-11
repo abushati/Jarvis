@@ -11,7 +11,7 @@ use jarvis::cli::commands::utils::{CliAction,CLICommand};
 
 enum primary_cmds {
     // MANAGER,
-    SYNC
+    STORAGE
     //  CONFIG,
     //   CLEAN
     }
@@ -23,7 +23,7 @@ impl FromStr for primary_cmds {
         let  input = input.to_uppercase();
         match input.as_str() {
             // "MANAGER" => Ok(primary_cmds::MANAGER),
-            "SYNC" => Ok(primary_cmds::SYNC),
+            "STORAGE" => Ok(primary_cmds::STORAGE),
             // "CONFIG"  => Ok(primary_cmds::CONFIG),
             // "CLEAN"  => Ok(primary_cmds::CLEAN),
             _      => Err(()),
@@ -52,7 +52,7 @@ fn parse_args() -> Result<CliAction,String> {
                 //     return Ok(manager::get_cmd(args).unwrap());
                     
                 // },
-                primary_cmds::SYNC => {
+                primary_cmds::STORAGE => {
                     let s = sync_cmd::default();
                     return  Ok(s.get_cmd(args).unwrap())
                 }
