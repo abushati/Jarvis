@@ -1,12 +1,11 @@
 use reqwest::blocking::Client;
-use std::collections::HashMap;
+use std::{collections::HashMap};
 use std::path::Path;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
 use serde::{Deserialize,Serialize};
-pub struct syncer {
-    pub destination: String,
-}
+// extern crate url;
+use url::form_urlencoded::byte_serialize;
 
 #[derive(Debug,Deserialize,Serialize)]
 pub struct FileUploadData {
@@ -27,11 +26,31 @@ impl FileUploadData {
     }
 }
 
+pub struct syncer {
+    pub api_client: reqwest::blocking::Client,
+    pub server_url: String,
+}
 
 impl syncer {
-    fn send_file_bytes(&self, file_id:String, bytes:&Vec<u8>) {
+    pub fn new() -> Self{
+        let server = "http://127.0.0.1:8080".to_string();
         let client = Client::new();
-        let post = client.post(format!("http://127.0.0.1:8080/upload_file_data/{}",file_id))
+        syncer { api_client:client, server_url: server }
+    }
+
+    fn url_endpoint(&self, endpoint: Vec<String>) -> String {
+        let mut v:Vec<String> = vec![];
+        for i in endpoint {
+            let encoded =byte_serialize(i.as_bytes()).collect::<String>();
+            v.push(encoded);
+        }
+        let endpoint = v.join("/");
+        return format!("{}/{}",self.server_url,endpoint);
+    }
+
+    fn send_file_bytes(&self, file_id:String, bytes:&Vec<u8>) {
+        let endpoint = vec!["upload_file_data".to_string(),file_id];
+        let post = self.api_client.post(&self.url_endpoint(endpoint))
         .body(bytes.to_owned())
         .send().unwrap();
         println!("Status: {}", post.status());
@@ -40,9 +59,9 @@ impl syncer {
     fn send_file_meta(&self, file_data:FileUploadData) -> String {
         // let json_value: Value = serde_json::to_value(file_data)?;
         let file_data = file_data.to_hashmap();
-        let client = Client::new();
-        let post = client
-        .post("http://127.0.0.1:8080/upload_file")
+        let endpoint = vec!["upload_file".to_string()];
+        let post = self.api_client
+        .post(self.url_endpoint(endpoint))
         .json(&file_data)
         .send().unwrap();
         // println!("{:?}",&post.text());
@@ -106,4 +125,45 @@ impl syncer {
 
     }
 
+    pub fn read_file(&self, file_key: &String) {
+        let endpoint = vec!["read_file".to_string(),file_key.to_owned()];
+        let res = self.api_client.get(self.url_endpoint(endpoint))
+        .send()
+        .unwrap();
+        
+        let headers = res.headers().clone();
+        let content_disposition = headers.get("content-disposition").unwrap();
+        
+        let h: Vec<&str> = content_disposition.to_str().unwrap().split(";").collect();
+        
+        let mut file_name = h.get(1).unwrap().to_string();
+        let h:Vec<&str> = file_name
+        .split("=")
+        .collect();
+        
+        let name = h.get(1).unwrap().to_string();
+        let name = name
+        .strip_prefix("\"")
+        .unwrap();
+        let name = name
+        .strip_suffix("\"")
+        .unwrap();
+        println!("{}",name);
+        
+
+        let file_bytes = res.bytes().unwrap().to_vec();
+        
+        //Todo: dowload dir config
+        let mut binding = OpenOptions::new();
+        let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(format!("/Users/arvidbushati/Downloads/{}",name)).unwrap();
+
+        file.write_all(&file_bytes);
+
+        
+    }
+
 }
+

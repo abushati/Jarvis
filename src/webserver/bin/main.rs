@@ -125,7 +125,7 @@ async fn read_file(re: HttpRequest, request: web::Path<(String,)> ) -> HttpRespo
             .body(buf)
         
     }
-    HttpResponse::Ok().body("hi".to_string())
+    HttpResponse::NotFound().body("hi".to_string())
 }
 
 #[actix_web::main]

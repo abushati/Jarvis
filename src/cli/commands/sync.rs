@@ -181,15 +181,14 @@ impl CLICommand for sync_cmd {
     fn run(&self) {
         let e = format!("Hello from run of sync type {:?}, path: {:?}",&self.type_arg, &self.path);
         println!("{}",e);
+        let syncer = syncer::new();
         match self.storage_action {
             StorageCommands::Upload => {
                 match self.type_arg.as_str() {
                     "directory" | "d" => {
-                        let syncer = syncer{destination:"test".to_string()};
                         syncer.sync_directory(&self.path)
                     },
                     "file" | "f" => {
-                        let syncer = syncer{destination:"test".to_string()};
                         syncer.sync_file(&self.path)
                     },
                     _ => {
@@ -197,6 +196,18 @@ impl CLICommand for sync_cmd {
                     }
                 }
             },
+            StorageCommands::Read => {
+                match self.type_arg.as_str() {
+                    "file" | "f" => {
+                        syncer.read_file(&self.path)
+                    },
+                    _ => {
+                        println!("invalid");
+                    }
+
+                    
+                }
+            }
             _ => {
                 unimplemented!();
             }
