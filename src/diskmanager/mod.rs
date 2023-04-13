@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use crate::syner::FileUploadData;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MetaData {
     pub file_name: String,
@@ -25,25 +26,46 @@ impl MetaData {
         ).unwrap();
         println!("{:?}",self)
     }
-    pub fn get_key_meta(self) {
-        let s = format!("Select * from metadata where id = '{}' ",self.public_file_path);
+    
+    pub fn delete(self) {
+        let s = format!("delete from metadata where id = '{}' ",self.public_file_path);
+        let connection = sqlite::open("jarvis.db").unwrap();
+        connection.execute(s);
+    }
+
+    pub fn get_key_meta(public_file_path: String) -> Result<MetaData,String> {
+        let s = format!("Select * from metadata where id = '{}' ",public_file_path);
         let connection = sqlite::open("jarvis.db").unwrap();
         // let stmt = connection.prepare(s).unwrap();
-        for row in connection
+        for row in connection 
             .prepare(s.clone())
             .unwrap()
             .into_iter()
             .map(|row| row.unwrap()){
-                let e: i64 = row.read("json_data");
-                print!("{}",&e)
+                let e: &str = row.read("json_data");
+                let metadata:MetaData = serde_json::from_str(e).unwrap();
+                return Ok(metadata)
         }
-        // println!("{:?}",res)
+
+
+        return Err("bad".to_string());        
     }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ManagerActionsEntry {
-    pub actionType: String,
-    pub file_bytes: Vec<u8>, 
-    pub fileData: Option<FileUploadData>
+    pub action_type: ManagerAction,
+    pub file_bytes: Option<Vec<u8>>, 
+    pub fileData: Option<FileUploadData>,
+    pub file_pub_key: Option<String>
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ManagerAction {
+    WriteFile,
+    ReadFile,
+    UpdateFile,
+    DeleteFile
+}
+
+

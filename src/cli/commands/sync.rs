@@ -172,12 +172,12 @@ impl FromStr for StorageCommands {
 }
 
 #[derive(Default)]
-pub struct sync_cmd {
+pub struct StorageCommand {
     storage_action: StorageCommands,
     type_arg: String,
     path: String
 }
-impl CLICommand for sync_cmd {
+impl CLICommand for StorageCommand {
     fn run(&self) {
         let e = format!("Hello from run of sync type {:?}, path: {:?}",&self.type_arg, &self.path);
         println!("{}",e);
@@ -204,10 +204,18 @@ impl CLICommand for sync_cmd {
                     _ => {
                         println!("invalid");
                     }
-
-                    
                 }
-            }
+            },
+            StorageCommands::Delete => {
+                match self.type_arg.as_str() {
+                    "file" | "f" => {
+                        syncer.delete_file(&self.path);
+                    },
+                    _ => {
+                        println!("invalid");
+                    }
+                }
+            },        
             _ => {
                 unimplemented!();
             }
@@ -219,7 +227,7 @@ impl CLICommand for sync_cmd {
         let storage_action = args.get(2).unwrap();
         let type_arg = args.get(3).unwrap().to_string();
         let path = args.get(4).unwrap().to_string();
-        let cmd = sync_cmd{storage_action: StorageCommands::from_str(storage_action).unwrap(),
+        let cmd = StorageCommand{storage_action: StorageCommands::from_str(storage_action).unwrap(),
                                     type_arg:type_arg,
                                     path:path};
         Ok(CliAction{cmd:Box::new(cmd)})

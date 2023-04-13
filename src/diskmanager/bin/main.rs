@@ -16,29 +16,20 @@ use std::io::prelude::*;
 use jarvis::diskmanager::{MetaData, ManagerActionsEntry};
 use std::env;
 use std::process::Command;
-use std::env::consts::OS;
-extern crate lazy_static;
+use jarvis::diskmanager::ManagerAction;
 
 static file_directory: &str = "/private/tmp/file_directory";
 
-enum ManagerActions {
-    WRITE_FILE,
-    READ_FILE,
-    UPDATE_FILE,
-    DELETE_FILE
-}
 
-impl ManagerActions {
-    fn get_action(s: &str) -> fn(&mut DiskManager, ManagerActionsEntry)  {
-        match s.to_uppercase().as_str() {
-            "WRITE_FILE"=> return DiskManager::write_file,
-            "READ_FILE" => return DiskManager::read_file,
-            "DELETE_FILE" => return DiskManager::delete_file,
-            _ => return DiskManager::write_file
+fn diskmanager_action_function(s: &ManagerAction) -> fn(&mut DiskManager, ManagerActionsEntry)  {
+        match s {
+            ManagerAction::WriteFile => return DiskManager::write_file,
+            ManagerAction::ReadFile => return DiskManager::read_file,
+            ManagerAction::DeleteFile => return DiskManager::delete_file,
+            _ => return DiskManager::read_file
         }
-
     }
-}
+
 
 #[derive(PartialEq,Clone)]
 pub enum ManagerStates {
@@ -57,9 +48,6 @@ pub struct DiskManager {
 }
 
 fn main()  {
-    // set_file_dir();
-
-
     let mut pool = DiskManagerPool::new(10);
     let output = Command::new("hostname")
     .output()
@@ -92,7 +80,7 @@ fn main()  {
         let entry = serde_json::from_str::<ManagerActionsEntry>(&data).unwrap();
         // let file_data = entry.fileData;
 
-        let running = &pool.perform_action(entry.actionType.to_string(),entry);
+        let running = &pool.perform_action(entry);
 
         if running.to_owned() == false {
             println!("Reenqueueing");
@@ -134,16 +122,18 @@ impl DiskManagerPool {
         }
     }
     
-    fn perform_action(&mut self, action: String, data: ManagerActionsEntry) -> bool {
+    fn perform_action(&mut self, actions_entry: ManagerActionsEntry) -> bool {
         for mut manager in &mut self.managers{
             if manager.state == ManagerStates::FREE {
-                let d = data;
+                let action_type = &actions_entry.action_type;
+                let action_function = diskmanager_action_function(action_type);
+
                 let mut m = manager.clone();
-                let action_function = ManagerActions::get_action(&action);
+                let data = actions_entry;
                 
                 manager.state = ManagerStates::WORKING;
                 let t = thread::spawn(move || {
-                    action_function(&mut m, d);
+                    action_function(&mut m, data);
                 });
                 self.threads.insert(manager.id, t);
                 return true
@@ -182,14 +172,21 @@ impl DiskManager {
     }
 
     fn delete_file(&mut self, data: ManagerActionsEntry) {
+        if data.file_pub_key.is_none() {
+            println!("Can't delete a file with no file key provided");
+        }
+        let file_key = data.file_pub_key.unwrap();
+        let meta_data = MetaData::get_key_meta(file_key).unwrap();
+        std::fs::remove_file(&meta_data._internal_file_path).unwrap();
+        meta_data.delete();
 
     }
 
     fn write_file(&mut self, data: ManagerActionsEntry) {
-        if data.fileData.is_none() {
+        if data.fileData.is_none() || data.file_bytes.is_none() {
+            println!("Can't save file bc fileData or file bytes are missing");
             return 
         }
-        let file_bytes = data.file_bytes;
         
         let meta_data = self.create_metadata(&data.fileData.unwrap());
         println!("Created meta data for file {:?} on worker {:?}", meta_data.public_file_path,&self.id);
@@ -198,7 +195,7 @@ impl DiskManager {
             .write(true)
             .create(true)
             .open(meta_data._internal_file_path).unwrap();
-        let _ = file.write_all(&file_bytes).unwrap();
+        let _ = file.write_all(&data.file_bytes.unwrap()).unwrap();
         thread::sleep(Duration::from_secs(1));
     }
 

@@ -3,7 +3,8 @@ extern crate serde;
 extern crate serde_json;
 use std::env::args;
 extern crate jarvis;
-use jarvis::cli::commands::{manager,sync::sync_cmd};
+use jarvis::cli::commands::manager;
+use jarvis::cli::commands::sync::StorageCommand;
 use jarvis::cli::commands::utils::{CliAction,CLICommand};
 // use jarvis::cli::commands::utils::
 
@@ -53,7 +54,7 @@ fn parse_args() -> Result<CliAction,String> {
                     
                 // },
                 primary_cmds::STORAGE => {
-                    let s = sync_cmd::default();
+                    let s = StorageCommand::default();
                     return  Ok(s.get_cmd(args).unwrap())
                 }
                 // primary_cmds::CONFIG => {return Err()},
