@@ -1,18 +1,15 @@
-use bytes::{Bytes, Buf};
+use actix_web::{get, post, delete, web, App ,HttpRequest, HttpResponse, HttpServer, Responder, http};
+use http::StatusCode;
 use std::io::Read;
 use std::process::Command;
-use std::{fs::OpenOptions, io::Write};
-use serde::{Serialize, Deserialize};
-use actix_web::{get, post, delete, web, App ,HttpRequest, HttpResponse, HttpServer, Responder, http};
+use std::fs::OpenOptions;
+use std::str;
+use std::env;
 extern crate redis;
 use redis::Commands;
-use std::collections::HashMap;
 use uuid::Uuid;
 use md5;
-use std::str;
 use jarvis::diskmanager::MetaData;
-use http::StatusCode;
-use std::env;
 use jarvis::syner::FileUploadData;
 use jarvis::diskmanager::ManagerActionsEntry;
 use jarvis::diskmanager::ManagerAction;
@@ -35,7 +32,7 @@ fn get_upload_file_data(id: &str) -> FileUploadData {
     uploaded_file.unwrap()
 }
 
-fn set_upload_file(key: String, value: String) -> redis::RedisResult<()> {
+fn set_upload_file_pending(key: String, value: String) -> redis::RedisResult<()> {
     let redis = env::var("redis").unwrap();
     println!("redis {}",redis);
     let redis_url = format!("redis://{}:6379",redis);
@@ -44,25 +41,6 @@ fn set_upload_file(key: String, value: String) -> redis::RedisResult<()> {
     let _ : () = con.set(&key,value)?;
     let _ : () = con.expire(&key,12)?;
     Ok(())
-}
-
-fn push_upload(data: FileUploadData,file_bytes: Vec<u8>) -> String {
-    let redis = env::var("redis").unwrap();
-    let redis_url = format!("redis://{}:6379",redis);
-    let client = redis::Client::open(redis_url).unwrap();
-    let mut con = client.get_connection().unwrap();
-    let upload_entry = ManagerActionsEntry {
-                                                    action_type: ManagerAction::WriteFile,
-                                                    fileData: Some(data),
-                                                    file_bytes:Some(file_bytes),
-                                                    file_pub_key: None
-                                                    
-                                                };
-
-    let d = serde_json::to_string(&upload_entry).unwrap();
-    let _:redis::RedisResult<()> = con.lpush("upload_queue".to_string(),d);
-    println!("Pushed to redis for diskmanager");
-    "ok".to_string()
 }
 
 fn queue_diskmanager_acton(data: ManagerActionsEntry) -> String {
@@ -86,10 +64,15 @@ async fn upload_file_data(file_bytes: web::Bytes,tid: web::Path<(String,)>) -> i
     if &saved_md5 != &digest{
         return HttpResponse::BadRequest().body("Body isnt equal to file metadata md5")
     }
-    push_upload(uploaded_file,file_bytes.to_vec());
+    let upload_entry = ManagerActionsEntry {
+        action_type: ManagerAction::WriteFile,
+        fileData: Some(uploaded_file),
+        file_bytes:Some(file_bytes.to_vec()),
+        file_pub_key: None
+    };
+    queue_diskmanager_acton(upload_entry);
     HttpResponse::Ok().body("File Uploaded")
 }
-
 
 
 #[post("/upload_file")]
@@ -100,8 +83,7 @@ async fn upload_file(request: web::Json<FileUploadData>) -> impl Responder {
     let upload_id = Uuid::new_v4().to_string();
     let upload_key = format!("upload_{}",&upload_id);
 
-
-    set_upload_file(upload_key, str_data);
+    set_upload_file_pending(upload_key, str_data);
     HttpResponse::Ok().body(upload_id)
 }
 
@@ -150,14 +132,12 @@ async fn delete_file(re: HttpRequest, request: web::Path<(String,)> ) -> HttpRes
     }; 
     println!("queuing delete here");
     queue_diskmanager_acton(entry);
-    HttpResponse::NotFound().body("hi".to_string())
+    HttpResponse::Ok().body("File queued to be deleted")
 }
 
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // server();
-    // tcpconnect();
     let output = Command::new("hostname")
     .output()
     .expect("failed to execute process");

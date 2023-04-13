@@ -20,13 +20,11 @@ impl MetaData {
         ).unwrap();
         let json = serde_json::to_string(&self).unwrap();
         let s = format!("INSERT INTO metadata (id, json_data) VALUES ('{}','{}')",self.public_file_path, json);
-        println!("{}",s);
         connection.execute(
             s,
         ).unwrap();
-        println!("{:?}",self)
     }
-    
+
     pub fn delete(self) {
         let s = format!("delete from metadata where id = '{}' ",self.public_file_path);
         let connection = sqlite::open("jarvis.db").unwrap();

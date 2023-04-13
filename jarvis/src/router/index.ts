@@ -19,5 +19,9 @@ const router = createRouter({
     }
   ]
 })
+let u = fetch('https://www.google.com')
+// the JSON body is taken from the response
+.then(res => console.log(res.status))
+
 
 export default router

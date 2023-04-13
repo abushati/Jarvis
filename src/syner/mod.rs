@@ -166,10 +166,10 @@ impl syncer {
 
     pub fn delete_file (self, file_key: &String) {
         let endpoint = vec!["delete_file".to_string(),file_key.to_owned()];
-        println!("{:?}",&self.url_endpoint(endpoint.clone()));
         let res = self.api_client.delete(self.url_endpoint(endpoint))
         .send()
         .unwrap();
+        println!("{:?}",res.text());
     }
 
 }

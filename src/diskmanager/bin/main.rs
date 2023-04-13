@@ -125,13 +125,16 @@ impl DiskManagerPool {
     fn perform_action(&mut self, actions_entry: ManagerActionsEntry) -> bool {
         for mut manager in &mut self.managers{
             if manager.state == ManagerStates::FREE {
+                manager.state = ManagerStates::WORKING;
+                println!("Action {:?}, is being performed on manager # {:?}",&actions_entry.action_type, manager.id);
+
                 let action_type = &actions_entry.action_type;
                 let action_function = diskmanager_action_function(action_type);
 
                 let mut m = manager.clone();
                 let data = actions_entry;
                 
-                manager.state = ManagerStates::WORKING;
+                
                 let t = thread::spawn(move || {
                     action_function(&mut m, data);
                 });
@@ -189,14 +192,13 @@ impl DiskManager {
         }
         
         let meta_data = self.create_metadata(&data.fileData.unwrap());
-        println!("Created meta data for file {:?} on worker {:?}", meta_data.public_file_path,&self.id);
 
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
             .open(meta_data._internal_file_path).unwrap();
         let _ = file.write_all(&data.file_bytes.unwrap()).unwrap();
-        thread::sleep(Duration::from_secs(1));
+        // thread::sleep(Duration::from_secs(5));
     }
 
     fn read_file(&mut self, data: ManagerActionsEntry) {
