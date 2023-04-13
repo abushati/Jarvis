@@ -2,3 +2,5 @@ target/**
 File.json
 FileMananger.json
 to_delete_queue.txt
+vue_docs/**
+Cargo.lock
