@@ -6,6 +6,7 @@ import EcosystemIcon from './icons/IconEcosystem.vue'
 import CommunityIcon from './icons/IconCommunity.vue'
 import SupportIcon from './icons/IconSupport.vue'
 import SideBarElement from './SideBarElement.vue'
+import SideBar from "./sidebar.ts"
 </script>
 
 <template>
