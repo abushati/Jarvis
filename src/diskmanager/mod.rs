@@ -50,12 +50,15 @@ impl MetaData {
     }
 }
 
+
+//Todo: need to check why some of these fields are options
 #[derive(Serialize, Deserialize)]
 pub struct ManagerActionsEntry {
     pub action_type: ManagerAction,
     pub file_bytes: Option<Vec<u8>>, 
     pub fileData: Option<FileUploadData>,
-    pub file_pub_key: Option<String>
+    pub file_pub_key: Option<String>,
+    pub basket_id: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,7 +66,10 @@ pub enum ManagerAction {
     WriteFile,
     ReadFile,
     UpdateFile,
-    DeleteFile
+    DeleteFile,
+    CreateBasket,
+    DeleteBasket,
+    EditBaskets
 }
 
 

@@ -9,10 +9,14 @@ extern crate redis;
 use redis::Commands;
 use uuid::Uuid;
 use md5;
+use serde::{Serialize, Deserialize};
+
+
 use jarvis::diskmanager::MetaData;
 use jarvis::syner::FileUploadData;
 use jarvis::diskmanager::ManagerActionsEntry;
 use jarvis::diskmanager::ManagerAction;
+
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -68,7 +72,8 @@ async fn upload_file_data(file_bytes: web::Bytes,tid: web::Path<(String,)>) -> i
         action_type: ManagerAction::WriteFile,
         fileData: Some(uploaded_file),
         file_bytes:Some(file_bytes.to_vec()),
-        file_pub_key: None
+        file_pub_key: None,
+        basket_id: "1".to_string()
     };
     queue_diskmanager_acton(upload_entry);
     HttpResponse::Ok().body("File Uploaded")
@@ -136,6 +141,29 @@ async fn delete_file(re: HttpRequest, request: web::Path<(String,)> ) -> HttpRes
 }
 
 
+#[derive(Serialize, Deserialize)]
+enum BasketPermissions {
+    VIEW,
+    EDIT,
+    CREATE,
+    DELETE
+}
+
+//Todo: should the owner be a string or an float
+#[derive(Serialize, Deserialize)]
+struct Basket {
+    name: String,
+    owner: String,
+    permissions: Vec<BasketPermissions>,
+    create_at: String
+}
+
+#[post("/basket")]
+async fn add_basket(basket_data: web::Json<Basket>) -> HttpResponse {
+    let basket_data = basket_data.0;
+    HttpResponse::Ok().body("File Uploaded")    
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let output = Command::new("hostname")
@@ -157,6 +185,7 @@ async fn main() -> std::io::Result<()> {
             .service(upload_file_data)
             .service(read_file)
             .service(delete_file)
+            .service(add_basket)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

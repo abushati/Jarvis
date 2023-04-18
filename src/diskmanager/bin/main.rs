@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use uuid::Uuid;
 use chrono::prelude::*;
 extern crate sqlite;
-use std::io::prelude::*;
 use jarvis::diskmanager::{MetaData, ManagerActionsEntry};
 use std::env;
 use std::process::Command;
@@ -26,6 +25,9 @@ fn diskmanager_action_function(s: &ManagerAction) -> fn(&mut DiskManager, Manage
             ManagerAction::WriteFile => return DiskManager::write_file,
             ManagerAction::ReadFile => return DiskManager::read_file,
             ManagerAction::DeleteFile => return DiskManager::delete_file,
+            ManagerAction::DeleteBasket => return DiskManager::delete_basket,
+            ManagerAction::CreateBasket => return DiskManager::create_basket,
+            ManagerAction::EditBaskets => return DiskManager::edit_basket,
             _ => return DiskManager::read_file
         }
     }
@@ -228,6 +230,19 @@ impl DiskManager {
         }
         return None
         
+    }
+
+
+    fn create_basket(&mut self,  data: ManagerActionsEntry) {
+        unimplemented!();
+    }
+
+    fn edit_basket(&mut self,  data: ManagerActionsEntry) {
+        unimplemented!();
+    }
+
+    fn delete_basket(&mut self,  data: ManagerActionsEntry) {
+        unimplemented!();
     }
 
 }
