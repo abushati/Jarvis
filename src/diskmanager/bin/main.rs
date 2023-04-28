@@ -17,6 +17,7 @@ use std::env;
 use std::process::Command;
 use jarvis::diskmanager::ManagerAction;
 
+
 static file_directory: &str = "/private/tmp/file_directory";
 
 
@@ -47,6 +48,55 @@ struct DiskManagerPool {
 pub struct DiskManager {
     pub id: u8,
     pub state: ManagerStates,
+}
+
+trait ManagerActionDataExecute {
+    fn execute(self, manager: &DiskManager);
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct WriteFile { 
+    file_name: String,
+    file_path: String,
+    file_md5: String,
+    file_bytes: Vec<u8>,
+    user: String,
+    basket: String,
+}
+
+impl ManagerActionDataExecute for WriteFile {
+    fn execute(self, manager: &DiskManager) {
+        if self.file_bytes.is_empty() {
+            println!("Can't save file bc fileData or file bytes are missing");
+            return 
+        }
+        
+        let meta_data = manager.create_metadata(&self);
+
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(meta_data._internal_file_path).unwrap();
+        let _ = file.write_all(&self.file_bytes).unwrap();
+        thread::sleep(Duration::from_secs(5));
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct DeleteFile {
+    file_pub_key: String
+}
+
+impl ManagerActionDataExecute for DeleteFile {
+    fn execute(self, manager: &DiskManager) {
+        if self.file_pub_key.is_empty() {
+            println!("Can't delete a file with no file key provided");
+        }
+        let file_key = self.file_pub_key;
+        let meta_data = MetaData::get_key_meta(file_key).unwrap();
+        std::fs::remove_file(&meta_data._internal_file_path).unwrap();
+        meta_data.delete();
+    }
 }
 
 fn main()  {
@@ -80,8 +130,6 @@ fn main()  {
 
         let data = data.unwrap();
         let entry = serde_json::from_str::<ManagerActionsEntry>(&data).unwrap();
-        // let file_data = entry.fileData;
-
         let running = &pool.perform_action(entry);
 
         if running.to_owned() == false {
@@ -154,7 +202,7 @@ impl DiskManager {
         DiskManager { id: id, state: ManagerStates::FREE}
     }
 
-    fn create_metadata(&self, data: &FileUploadData) -> MetaData {
+    fn create_metadata(&self, data: &WriteFile) -> MetaData {
         
         //Check if key == file_path exist
         let _internal_file_id = Uuid::new_v4();
@@ -177,29 +225,25 @@ impl DiskManager {
     }
 
     fn delete_file(&mut self, data: ManagerActionsEntry) {
-        if data.file_pub_key.is_none() {
-            println!("Can't delete a file with no file key provided");
-        }
-        let file_key = data.file_pub_key.unwrap();
-        let meta_data = MetaData::get_key_meta(file_key).unwrap();
-        std::fs::remove_file(&meta_data._internal_file_path).unwrap();
-        meta_data.delete();
-
+        let t:DeleteFile = serde_json::from_str(data.data.as_str()).unwrap();
+        t.execute(&self);
     }
 
     fn write_file(&mut self, data: ManagerActionsEntry) {
-        if data.fileData.is_none() || data.file_bytes.is_none() {
-            println!("Can't save file bc fileData or file bytes are missing");
-            return 
-        }
+        let t:WriteFile = serde_json::from_str(data.data.as_str()).unwrap();
+        t.execute(&self)
+        // if data.fileData.is_none() || data.file_bytes.is_none() {
+        //     println!("Can't save file bc fileData or file bytes are missing");
+        //     return 
+        // }
         
-        let meta_data = self.create_metadata(&data.fileData.unwrap());
+        // let meta_data = self.create_metadata(&data.fileData.unwrap());
 
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(meta_data._internal_file_path).unwrap();
-        let _ = file.write_all(&data.file_bytes.unwrap()).unwrap();
+        // let mut file = OpenOptions::new()
+        //     .write(true)
+        //     .create(true)
+        //     .open(meta_data._internal_file_path).unwrap();
+        // let _ = file.write_all(&data.file_bytes.unwrap()).unwrap();
         // thread::sleep(Duration::from_secs(5));
     }
 

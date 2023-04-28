@@ -1,5 +1,7 @@
 use serde::{Serialize, Deserialize};
-use crate::syner::FileUploadData;
+use crate::{syner::FileUploadData, cli::commands::manager};
+use std::{fs::OpenOptions, io::Write};
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MetaData {
@@ -50,16 +52,14 @@ impl MetaData {
     }
 }
 
-
+#[derive(Debug, Serialize, Deserialize)]
 //Todo: need to check why some of these fields are options
-#[derive(Serialize, Deserialize)]
 pub struct ManagerActionsEntry {
     pub action_type: ManagerAction,
-    pub file_bytes: Option<Vec<u8>>, 
-    pub fileData: Option<FileUploadData>,
-    pub file_pub_key: Option<String>,
-    pub basket_id: String
+    pub data: String,
 }
+
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ManagerAction {
@@ -71,5 +71,4 @@ pub enum ManagerAction {
     DeleteBasket,
     EditBaskets
 }
-
 

@@ -16,6 +16,7 @@ use jarvis::diskmanager::MetaData;
 use jarvis::syner::FileUploadData;
 use jarvis::diskmanager::ManagerActionsEntry;
 use jarvis::diskmanager::ManagerAction;
+use jarvis::diskmanager::
 
 
 #[get("/")]
@@ -68,13 +69,16 @@ async fn upload_file_data(file_bytes: web::Bytes,tid: web::Path<(String,)>) -> i
     if &saved_md5 != &digest{
         return HttpResponse::BadRequest().body("Body isnt equal to file metadata md5")
     }
-    let upload_entry = ManagerActionsEntry {
-        action_type: ManagerAction::WriteFile,
-        fileData: Some(uploaded_file),
-        file_bytes:Some(file_bytes.to_vec()),
-        file_pub_key: None,
-        basket_id: "1".to_string()
-    };
+    let action_type = ManagerAction::WriteFile;
+    let data = WriteFile { file_name: uploaded_file.file_name,
+        file_path: uploaded_file.file_path,
+        file_md5: uploaded_file.file_md5,
+        file_bytes: file_bytes.to_vec(),
+        user: "1".to_string(),
+        basket: "1".to_string() };
+  
+    let upload_entry = ManagerActionsEntry { action_type: action_type, data: data };
+
     queue_diskmanager_acton(upload_entry);
     HttpResponse::Ok().body("File Uploaded")
 }
@@ -127,16 +131,15 @@ async fn read_file(re: HttpRequest, request: web::Path<(String,)> ) -> HttpRespo
 
 #[delete("/delete_file/{file_key}")]
 async fn delete_file(re: HttpRequest, request: web::Path<(String,)> ) -> HttpResponse {
-    println!("here");
+
     let file_key = request.clone().0;
-    let entry = ManagerActionsEntry {
-        action_type: ManagerAction::DeleteFile,
-        file_bytes: None,
-        fileData: None,
-        file_pub_key: Some(file_key)
-    }; 
+    let action_type = ManagerAction::WriteFile;
+    let data = DeleteFile{ file_pub_key: file_key };
+
+    let delete_entry = ManagerActionsEntry { action_type: action_type, data: data };
+    
     println!("queuing delete here");
-    queue_diskmanager_acton(entry);
+    queue_diskmanager_acton(delete_entry);
     HttpResponse::Ok().body("File queued to be deleted")
 }
 
@@ -161,6 +164,7 @@ struct Basket {
 #[post("/basket")]
 async fn add_basket(basket_data: web::Json<Basket>) -> HttpResponse {
     let basket_data = basket_data.0;
+
     HttpResponse::Ok().body("File Uploaded")    
 }
 
