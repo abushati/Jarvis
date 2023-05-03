@@ -1,3 +1,4 @@
+use actix_multipart::form::json;
 use serde::{Serialize, Deserialize};
 use crate::{syner::FileUploadData, cli::commands::manager};
 use std::{fs::OpenOptions, io::Write};
@@ -59,8 +60,6 @@ pub struct ManagerActionsEntry {
     pub data: String,
 }
 
-
-
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ManagerAction {
     WriteFile,
@@ -71,4 +70,31 @@ pub enum ManagerAction {
     DeleteBasket,
     EditBaskets
 }
+pub trait toString {
+    fn to_string(&self) -> String;
+}
+// #[derive(Clone)]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct WriteFile { 
+    pub file_name: String,
+    pub file_path: String,
+    pub file_md5: String,
+    pub file_bytes: Vec<u8>,
+    pub user: String,
+    pub basket: String,
+}
 
+impl toString for WriteFile {
+    fn to_string(&self) -> String {
+        return serde_json::to_string(self).unwrap();
+    }
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeleteFile {
+    pub file_pub_key: String
+}
+impl toString for DeleteFile {
+    fn to_string(&self) -> String {
+        return serde_json::to_string(self).unwrap();
+    }
+}

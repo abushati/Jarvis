@@ -16,7 +16,8 @@ use jarvis::diskmanager::MetaData;
 use jarvis::syner::FileUploadData;
 use jarvis::diskmanager::ManagerActionsEntry;
 use jarvis::diskmanager::ManagerAction;
-use jarvis::diskmanager::
+use jarvis::diskmanager::{WriteFile,DeleteFile};
+use jarvis::diskmanager::toString;
 
 
 #[get("/")]
@@ -76,8 +77,8 @@ async fn upload_file_data(file_bytes: web::Bytes,tid: web::Path<(String,)>) -> i
         file_bytes: file_bytes.to_vec(),
         user: "1".to_string(),
         basket: "1".to_string() };
-  
-    let upload_entry = ManagerActionsEntry { action_type: action_type, data: data };
+        
+    let upload_entry = ManagerActionsEntry { action_type: action_type, data: data.to_string() };
 
     queue_diskmanager_acton(upload_entry);
     HttpResponse::Ok().body("File Uploaded")
@@ -136,7 +137,7 @@ async fn delete_file(re: HttpRequest, request: web::Path<(String,)> ) -> HttpRes
     let action_type = ManagerAction::WriteFile;
     let data = DeleteFile{ file_pub_key: file_key };
 
-    let delete_entry = ManagerActionsEntry { action_type: action_type, data: data };
+    let delete_entry = ManagerActionsEntry { action_type: action_type, data: data.to_string() };
     
     println!("queuing delete here");
     queue_diskmanager_acton(delete_entry);

@@ -16,10 +16,17 @@ use jarvis::diskmanager::{MetaData, ManagerActionsEntry};
 use std::env;
 use std::process::Command;
 use jarvis::diskmanager::ManagerAction;
+use jarvis::diskmanager::{WriteFile,DeleteFile};
 
 
 static file_directory: &str = "/private/tmp/file_directory";
-
+struct DiskManagerPool {
+    managers: Vec<DiskManager>,
+    threads: HashMap<u8,JoinHandle<()>>
+}
+pub trait ManagerActionDataExecute {
+    fn execute(self, manager: &DiskManager);
+}
 
 fn diskmanager_action_function(s: &ManagerAction) -> fn(&mut DiskManager, ManagerActionsEntry)  {
         match s {
@@ -33,59 +40,24 @@ fn diskmanager_action_function(s: &ManagerAction) -> fn(&mut DiskManager, Manage
         }
     }
 
-
-#[derive(PartialEq,Clone)]
-pub enum ManagerStates {
-    WORKING,
-    FREE
-}
-// #[derive(Clone)]
-struct DiskManagerPool {
-    managers: Vec<DiskManager>,
-    threads: HashMap<u8,JoinHandle<()>>
-}
-#[derive(Clone)]
-pub struct DiskManager {
-    pub id: u8,
-    pub state: ManagerStates,
-}
-
-trait ManagerActionDataExecute {
-    fn execute(self, manager: &DiskManager);
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct WriteFile { 
-    file_name: String,
-    file_path: String,
-    file_md5: String,
-    file_bytes: Vec<u8>,
-    user: String,
-    basket: String,
-}
-
-impl ManagerActionDataExecute for WriteFile {
-    fn execute(self, manager: &DiskManager) {
-        if self.file_bytes.is_empty() {
-            println!("Can't save file bc fileData or file bytes are missing");
-            return 
+    impl ManagerActionDataExecute for WriteFile {
+        fn execute(self, manager: &DiskManager) {
+            if self.file_bytes.is_empty() {
+                println!("Can't save file bc fileData or file bytes are missing");
+                return 
+            }
+            
+            let meta_data = manager.create_metadata(&self);
+    
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .open(meta_data._internal_file_path).unwrap();
+            let _ = file.write_all(&self.file_bytes).unwrap();
+            thread::sleep(Duration::from_secs(5));
         }
-        
-        let meta_data = manager.create_metadata(&self);
-
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(meta_data._internal_file_path).unwrap();
-        let _ = file.write_all(&self.file_bytes).unwrap();
-        thread::sleep(Duration::from_secs(5));
     }
-}
 
-#[derive(Serialize, Deserialize, Debug)]
-struct DeleteFile {
-    file_pub_key: String
-}
 
 impl ManagerActionDataExecute for DeleteFile {
     fn execute(self, manager: &DiskManager) {
@@ -99,6 +71,11 @@ impl ManagerActionDataExecute for DeleteFile {
     }
 }
 
+#[derive(PartialEq,Clone)]
+pub enum ManagerStates {
+    WORKING,
+    FREE
+}
 fn main()  {
     let mut pool = DiskManagerPool::new(10);
     let output = Command::new("hostname")
@@ -197,6 +174,11 @@ impl DiskManagerPool {
     }    
 }
 
+#[derive(Clone)]
+pub struct DiskManager {
+    pub id: u8,
+    pub state: ManagerStates,
+}
 impl DiskManager {
     fn new (id: u8) -> Self {
         DiskManager { id: id, state: ManagerStates::FREE}
